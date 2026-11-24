@@ -3,15 +3,17 @@ const Input = {
 
   init(canvas) {
     window.addEventListener('keydown', (e) => {
+      if (window.Net && Net.chatOpen) return;
       this.keys[e.code] = true;
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
       this.firstGesture = true;
     });
-    window.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
+    window.addEventListener('keyup', (e) => { if (window.Net && Net.chatOpen) return; this.keys[e.code] = false; });
     window.addEventListener('mousemove', (e) => {
       this.mouse.x = e.clientX; this.mouse.y = e.clientY;
     });
     window.addEventListener('mousedown', (e) => {
+      if (window.Net && Net.chatOpen) return;
       if (e.button === 0) this.mouse.down = true;
       this.firstGesture = true;
     });

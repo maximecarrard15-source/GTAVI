@@ -56,6 +56,7 @@ const Game = {
     this.initHUD();
     this.initMinimap();
     this.bindMenus();
+    this.bindChat();
 
     window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -68,15 +69,36 @@ const Game = {
 
   bindMenus() {
     const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
-    document.getElementById('btnPlay').onclick = () => {
-      Sound.ensure(); Sound.resume();
-      show('menu', false); this.state = 'playing';
-      this.banner('BIENVENUE À LEONIDA'); setTimeout(() => this.bannerEl.classList.remove('show'), 3500);
-    };
+    this._show = show;
+    document.getElementById('btnPlay').onclick = () => { Sound.ensure(); Sound.resume(); Net.mode = 'offline'; this.launch(); };
+    document.getElementById('btnNet').onclick = () => { show('menu', false); show('mnet', true); };
+    document.getElementById('btnNetBack').onclick = () => { show('mnet', false); show('menu', true); };
+    document.getElementById('btnHost').onclick = () => { Sound.ensure(); Sound.resume(); Net.hostGame(); };
+    document.getElementById('btnJoin').onclick = () => { Sound.ensure(); Sound.resume(); Net.joinGame(document.getElementById('joinCode').value.trim().toUpperCase()); };
     document.getElementById('btnHelp').onclick = () => { show('menu', false); show('help', true); };
     document.getElementById('btnBack').onclick = () => { show('help', false); show('menu', true); };
     document.getElementById('btnResume').onclick = () => { show('pause', false); this.state = 'playing'; };
     document.getElementById('btnMenuBack').onclick = () => { show('pause', false); show('menu', true); this.state = 'menu'; };
+  },
+
+  launch() {
+    if (this._launched) { this._show('menu', false); this._show('mnet', false); this.state = 'playing'; return; }
+    this._launched = true;
+    this._show('menu', false);
+    this._show('mnet', false);
+    this.state = 'playing';
+    if (Net.mode !== 'offline') Net.system('Tu es ' + Net.myName + (Net.mode === 'host' ? ' (hôte)' : '') + '. Appuie sur T pour chatter.');
+    this.banner('BIENVENUE À LEONIDA');
+    setTimeout(() => this.bannerEl.classList.remove('show'), 3500);
+  },
+
+  bindChat() {
+    const inp = document.getElementById('chatInput');
+    inp.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') { Net.sendChat(); }
+      else if (e.key === 'Escape') { Net.closeChat(); }
+    });
   },
 
   initHUD() {
@@ -179,7 +201,7 @@ const Game = {
     }
   },
 
-  explosion(pos) {
+  explosion(pos, fxOnly) {
     Sound.explosion();
     const m = new THREE.Mesh(new THREE.SphereGeometry(8, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff8830, transparent: true, opacity: 0.9 }));
     m.position.copy(pos); m.position.y = 12;
@@ -187,6 +209,7 @@ const Game = {
     this.particles.push({ m, ex: true, life: 0.8 });
     this.sparks(pos, 14, 0xff6630);
     const R = 110;
+    if (fxOnly) return;
     for (const c of this.cars) if (!c.dead && c.pos.distanceTo(pos) < R) c.damage(120, false);
     for (const pd of this.peds) if (!pd.dead && pd.pos.distanceTo(pos) < R) pd.die(false);
     const pp = this.playerPos();
@@ -263,6 +286,7 @@ const Game = {
 
   tryEnterExit() {
     const f = Input.isDown('KeyF', 'Enter');
+    if (Net.mode === 'client') { Net.clientEnterExit(f); this.prevF = f; return; }
     if (f && !this.prevF) {
       if (this.player.car) {
         const car = this.player.car;
@@ -295,7 +319,7 @@ const Game = {
   },
 
   playerShoot() {
-    if (this.player.deadState) return;
+    if (this.player.deadState || Net.chatOpen) return;
     const w = this.player.weaponDef;
     const cd = this.player.shootCd;
     this.player.shootCd -= 1 / 60;
@@ -306,6 +330,10 @@ const Game = {
     const ray = this.aimRay();
     const from = this.player.car ? this.player.car.pos.clone() : this.player.pos.clone();
     from.y = 0;
+    if (Net.mode === 'client') {
+      Net.sendShot(from, ray, w.dmg);
+      return;
+    }
     this.shoot(from.add(ray.clone().normalize().multiplyScalar(16)), ray, false, w.dmg, this.player.weapon);
     Police.crime(0.05);
     for (const pd of this.peds) pd.scare(this.playerPos().x, this.playerPos().z);
@@ -479,6 +507,19 @@ const Game = {
   },
 
   updateCars(dt) {
+    if (Net.mode === 'client') {
+      if (this.player.car) {
+        if (this.player.car.hp <= 0) {
+          this.removeCar(this.player.car);
+          this.player.car = null;
+          Sound.stopEngine();
+        } else {
+          this.player.car.controlPlayer(dt, Input);
+          this.player.car.physics(dt);
+        }
+      }
+      return;
+    }
     for (let i = this.cars.length - 1; i >= 0; i--) {
       const c = this.cars[i];
       if (c.dead && !c.exploded) { c.exploded = true; this.explosion(c.pos.clone()); }
@@ -491,6 +532,7 @@ const Game = {
         continue;
       }
       if (c === this.player.car) { c.controlPlayer(dt, Input); c.physics(dt); }
+      else if (c.driver && c.driver !== 'ai' && c.driver !== 'cop') { }
       else { c.updateAI(dt); c.physics(dt); }
       const d = c.pos.distanceTo(this.playerPos());
       if (c.driver === 'ai' && d > 1900) this.removeCar(c);
@@ -568,7 +610,8 @@ const Game = {
     };
     if (Missions.state === 'idle') blip(Missions.startMarker.position.x, Missions.startMarker.position.z, '#ffd23c');
     else if (Missions.marker.visible) blip(Missions.marker.position.x, Missions.marker.position.z, '#ffd23c');
-    for (const c of Police.list) if (!c.dead) blip(c.pos.x, c.pos.z, Math.floor(this.dayT * 2) % 2 ? '#ff4444' : '#4467ff');
+    for (const c of this.cars) if (c.isPolice && !c.dead) blip(c.pos.x, c.pos.z, Math.floor(this.dayT * 2) % 2 ? '#ff4444' : '#4467ff');
+    for (const [, rp] of Net.remotes) blip(rp.pos.x, rp.pos.z, '#ff9de2');
     blip(City.spray.x, City.spray.z, '#39c0ff');
     blip(City.hospital.x, City.hospital.z, '#ffffff');
     for (const pk of this.pickups) blip(pk.pos.x, pk.pos.z, '#7be08a', 2.4);
@@ -589,18 +632,24 @@ const Game = {
     City.update(this.dayT);
 
     if (this.state === 'playing' && !this.player.deadState) {
-      if (Input.isDown('Escape', 'KeyP')) { this.state = 'paused'; document.getElementById('pause').classList.remove('hidden'); Sound.setEngine(0, false); }
+      if (Input.isDown('Escape', 'KeyP')) { this.state = 'paused'; document.getElementById('pause').classList.remove('hidden'); if (Net.chatOpen) Net.closeChat(); Sound.setEngine(0, false); }
+      if (Net.mode !== 'offline') Net.handleKeys();
       this.tryEnterExit();
-      Missions.update(dt);
-      Police.update(dt, this.nightFactor() > 0.5);
+      const client = Net.mode === 'client';
+      if (!client) {
+        Missions.update(dt);
+        Police.update(dt, this.nightFactor() > 0.5);
+        this.updatePeds(dt);
+        this.bulletUpdate(dt);
+        this.pickupsUpdate(dt);
+        this.sprayCheck();
+        this.carCollisions();
+      }
       this.updateCars(dt);
-      this.carCollisions();
-      this.updatePeds(dt);
-      this.bulletUpdate(dt);
       this.particlesUpdate(dt);
-      this.pickupsUpdate(dt);
       this.playerShoot();
-      this.sprayCheck();
+      if (Net.mode === 'host') Net.hostTick(dt);
+      if (client) Net.clientStep(dt);
       if (this.player.car) Sound.setEngine(Math.min(1, Math.abs(this.player.car.forwardSpd()) / this.player.car.t.maxF), true);
       else Sound.setEngine(0, false);
       if (Input.isDown('KeyH')) Sound.horn();

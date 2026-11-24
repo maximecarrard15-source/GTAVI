@@ -33,7 +33,8 @@
       <span class="gtaSix">VI</span>
       <span class="gtaSub">FAN EDITION 3D — LEONIDA (WEBGL)</span>
     </div>
-    <button id="btnPlay" class="menuBtn">▶ JOUER</button>
+    <button id="btnPlay" class="menuBtn">▶ JOUER SOLO</button>
+    <button id="btnNet" class="menuBtn secondary">🌐 MULTIJOUEUR</button>
     <button id="btnHelp" class="menuBtn secondary">🎮 CONTRÔLES</button>
     <p class="disclaimer">Projet fan hommage, non affilié à Rockstar Games.</p>
   </div>
@@ -49,6 +50,7 @@
       <tr><td>Espace</td><td>Frein à main (drift)</td></tr>
       <tr><td>H</td><td>Klaxon</td></tr>
       <tr><td>Échap / P</td><td>Pause</td></tr>
+      <tr><td>T</td><td>Chat (en multijoueur)</td></tr>
     </table>
     <p>Missions : va sur les <b class="y">marqueurs jaunes</b>. Au volant d'un flic qui te cherche ? File au <b class="b">Pay'n'Spray (bleu, $300)</b> pour repeindre la caisse.</p>
     <p>Pickups : ❤ santé · 🛡 armure · 💵 cash · 🔫 munitions SMG.</p>
@@ -64,18 +66,42 @@
   </div>
 </div>
 
+<div id="mnet" class="overlay hidden">
+  <div class="menuBox">
+    <h2>MULTIJOUEUR P2P (WebRTC)</h2>
+    <p>Héberge une partie et partage le code à 5 lettres,<br>ou rejoins la partie d'un ami.</p>
+    <button id="btnHost" class="menuBtn">🎲 HÉBERGER UNE PARTIE</button>
+    <div id="hostCode" class="codeBox hidden">CODE À PARTAGER : <b id="codeTxt"></b></div>
+    <div class="joinRow">
+      <input id="joinCode" maxlength="5" placeholder="CODE" autocomplete="off">
+      <button id="btnJoin" class="menuBtn secondary">REJOINDRE</button>
+    </div>
+    <p id="netStatus"></p>
+    <p class="disclaimer">Partage pair-à-pair via le signaling gratuit PeerJS. La partie tourne sur le navigateur de l'hôte.</p>
+    <button id="btnNetBack" class="menuBtn secondary">RETOUR</button>
+  </div>
+</div>
+
 <div id="wasted" class="overlay hidden">
   <h1 class="wastedTxt">WASTED</h1>
 </div>
 <div id="missionDone" class="overlay hidden"><h1 class="doneTxt">MISSION PASSED !</h1></div>
 
+<div id="netChip" class="hidden"></div>
+<div id="chat" class="off">
+  <div id="chatLog"></div>
+  <input id="chatInput" placeholder="Message…  (Entrée : envoyer · Échap : fermer)">
+</div>
+
 <script src="js/vendor/three.min.js"></script>
+<script src="js/vendor/peerjs.min.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/input.js"></script>
 <script src="js/world3d.js"></script>
 <script src="js/entities3d.js"></script>
 <script src="js/police.js"></script>
 <script src="js/missions.js"></script>
+<script src="js/net.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

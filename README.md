@@ -40,11 +40,28 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 - **Sons procéduraux** : moteur dépendant de la vitesse, klaxon, sirène,
   tirs, crashes, explosions.
 
+## 🌐 Multijoueur (nouveau !)
+
+Mode **pair-à-pair via WebRTC** (PeerJS) — hébergé directement dans les navigateurs,
+aucun serveur de jeu à déployer :
+
+1. Menu → **MULTIJOUEUR** → **HÉBERGER** : un code à 5 lettres est généré (ex. `KLMXP`).
+2. Envoie le code à tes amis → ils cliquent **REJOINDRE** avec le code.
+3. Monde partagé : positions, véhicules volés, police, pickups et **chat** (touche `T`).
+
+Détails techniques (`js/net.js`) :
+- Topologie étoile : l'hôte fait tourner la simulation (trafic, piétons, police,
+  missions, dégâts) et diffuse 15 snapshots/s ; les clients prédisent localement
+  leur propre voiture.
+- Chat relayé par l'hôte, messages système (arrivées/départs).
+- Nomme-tags au-dessus des autres joueurs, blips violets sur la minimap.
+- Seul l'hôte termine les missions pour le moment.
+
 ## 🧱 Stack
 
 - HTML5 + CSS
-- [three.js r128](https://threejs.org/) (vendorisé dans `js/vendor/`)
-- JavaScript vanilla, aucun build, aucune dépendance runtime externe
+- [three.js r128](https://threejs.org/) + [PeerJS 1.5](https://peerjs.com/) (vendorisés dans `js/vendor/`)
+- JavaScript vanilla, aucun build, signalling P2P gratuit PeerJS Cloud
 
 ## Structure
 
@@ -58,5 +75,6 @@ js/world3d.js       Génération de la ville + collisions
 js/entities3d.js    Voitures, piétons, joueur
 js/police.js        Système de recherche + IA police
 js/missions.js      Système de missions
+js/net.js           Multijoueur P2P (PeerJS) + chat
 js/main.js          Boucle de jeu, caméra, HUD, minimap
 ```
