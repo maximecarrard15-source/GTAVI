@@ -32,8 +32,15 @@ class Car {
     const cabinMat = new THREE.MeshPhongMaterial({ color: 0x101b30, shininess: 140, specular: 0x99bbff });
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.45, 9, t.wid * 0.82), cabinMat);
     cabin.position.set(-t.len * 0.05, 18.5, 0); cabin.castShadow = true; this.group.add(cabin);
-    const glass = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.46, 6, t.wid * 0.86), new THREE.MeshPhongMaterial({ color: 0x4a90c2, transparent: true, opacity: 0.35, shininess: 160 }));
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.46, 6, t.wid * 0.86), new THREE.MeshPhongMaterial({ color: 0x22364e, transparent: true, opacity: 0.5, shininess: 180, specular: 0x99ccff }));
     glass.position.set(-t.len * 0.05, 19.5, 0); this.group.add(glass);
+    const mirrorGeo = new THREE.BoxGeometry(1.6, 1.6, 3.4);
+    for (const mz of [-t.wid / 2 - 1.6, t.wid / 2 + 1.6]) {
+      const mir = new THREE.Mesh(mirrorGeo, cabinMat);
+      mir.position.set(t.len * 0.13, 19.5, mz); this.group.add(mir);
+    }
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(1, 3.5, 7), new THREE.MeshPhongMaterial({ color: 0xe9e9e0, shininess: 40 }));
+    plate.position.set(-t.len / 2 - 0.3, 6, 0); this.group.add(plate);
     const bumpMat = new THREE.MeshLambertMaterial({ color: 0x1a1d22 });
     for (const bx of [t.len / 2 - 1, -t.len / 2 + 1]) {
       const bump = new THREE.Mesh(new THREE.BoxGeometry(4, 5, t.wid + 1), bumpMat);
@@ -64,11 +71,14 @@ class Car {
       this.bar2 = new THREE.Mesh(new THREE.BoxGeometry(4, 3.5, 3.5), new THREE.MeshBasicMaterial({ color: 0x2244ff }));
       this.bar2.position.set(0, 24.5, 4); this.group.add(this.bar2);
     }
-    const wheelGeo = new THREE.CylinderGeometry(4.6, 4.6, 3.4, 10);
-    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const wheelGeo = new THREE.CylinderGeometry(4.6, 4.6, 3.4, 14);
+    const wheelMat = new THREE.MeshPhongMaterial({ color: 0x15171b, shininess: 55 });
+    const rimGeo = new THREE.CylinderGeometry(2.4, 2.4, 3.55, 12);
+    const rimMat = new THREE.MeshPhongMaterial({ color: 0xc9ced6, shininess: 130, specular: 0xffffff });
     this.wheels = [];
     for (const [wx, wz] of [[t.len / 2 - 9, -t.wid / 2], [t.len / 2 - 9, t.wid / 2], [-t.len / 2 + 9, -t.wid / 2], [-t.len / 2 + 9, t.wid / 2]]) {
       const w = new THREE.Mesh(wheelGeo, wheelMat);
+      w.add(new THREE.Mesh(rimGeo, rimMat));
       w.rotation.z = Math.PI / 2;
       w.position.set(wx, 4.6, wz);
       const pivot = new THREE.Group(); pivot.add(w); pivot.position.set(wx, 4.6, wz); w.position.set(0, 0, 0);
@@ -204,21 +214,41 @@ class Car {
 class Ped {
   constructor(x, z) {
     this.pos = new THREE.Vector3(x, 0, z);
-    const skin = [0xe8b48a, 0xc98a5e, 0x8a5a3a, 0xf0c8a0][Math.floor(Math.random() * 4)];
-    const shirt = [0xe75480, 0x30c5c0, 0xf2a541, 0xffffff, 0x7e57c2, 0xff7043][Math.floor(Math.random() * 6)];
+    const skin = [0xe8b48a, 0xc98a5e, 0x8a5a3a, 0xf0c8a0, 0x6e452c][Math.floor(Math.random() * 5)];
+    const shirt = [0xe75480, 0x30c5c0, 0xf2a541, 0xffffff, 0x7e57c2, 0xff7043, 0x2d6b4f, 0xd44a3a][Math.floor(Math.random() * 8)];
+    const pants = [0x22304a, 0x3a3f47, 0x59422e, 0x6b2230, 0x2d4d3f, 0xd0d3da][Math.floor(Math.random() * 6)];
+    const hairC = [0x2a1e16, 0x120d0a, 0x6b4a2a, 0xb8a878, 0x8a8f96, 0x4a2f6b][Math.floor(Math.random() * 6)];
     this.group = new THREE.Group();
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(8, 10, 5), new THREE.MeshLambertMaterial({ color: shirt }));
-    torso.position.y = 14; this.group.add(torso);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(3.4, 8, 6), new THREE.MeshLambertMaterial({ color: skin }));
-    head.position.y = 21.5; this.group.add(head);
-    for (const ax of [-5.2, 5.2]) {
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(2.6, 8, 2.6), new THREE.MeshLambertMaterial({ color: shirt }));
-      arm.position.set(ax, 13.5, 0); this.group.add(arm);
+    const pantsMat = new THREE.MeshLambertMaterial({ color: pants });
+    const shirtMat = new THREE.MeshLambertMaterial({ color: shirt });
+    const pelvis = new THREE.Mesh(new THREE.BoxGeometry(6.6, 4.5, 4.6), pantsMat);
+    pelvis.position.y = 8.2; this.group.add(pelvis);
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(8, 10.5, 5), shirtMat);
+    torso.position.y = 15.5; this.group.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(3.3, 10, 8), new THREE.MeshLambertMaterial({ color: skin }));
+    head.position.y = 23.2; this.group.add(head);
+    this.head = head;
+    if (Math.random() < 0.75) {
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(3.4, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: hairC }));
+      hair.position.y = 23.2; this.group.add(hair);
+      if (Math.random() < 0.3) {
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.6, 1.5, 10), new THREE.MeshLambertMaterial({ color: shirt }));
+        cap.position.y = 25.4; this.group.add(cap);
+      }
     }
-    this.legMat = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
+    this.arms = [];
+    const armGeo = new THREE.BoxGeometry(2.6, 9, 2.6);
+    armGeo.translate(0, -3.8, 0);
+    for (const ax of [-5.3, 5.3]) {
+      const arm = new THREE.Mesh(armGeo, shirtMat);
+      arm.position.set(ax, 20, 0); this.arms.push(arm); this.group.add(arm);
+    }
+    this.legs = [];
+    const legGeo = new THREE.BoxGeometry(3, 8.5, 3.4);
+    legGeo.translate(0, -4.2, 0);
     for (const lx of [-2, 2]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(3, 9, 3.4), this.legMat);
-      leg.position.set(lx, 4.5, 0); this.group.add(leg);
+      const leg = new THREE.Mesh(legGeo, pantsMat);
+      leg.position.set(lx, 8.4, 0); this.legs.push(leg); this.group.add(leg);
     }
     this.group.add(makeBlobShadow(6));
     this.target = City.randomSidewalkPoint();
@@ -251,7 +281,12 @@ class Ped {
     this.walkT += dt * spd * 0.12;
     this.group.position.copy(this.pos);
     this.group.rotation.y = -this.angle;
-    this.group.children[1].position.y = 21.5 + Math.abs(Math.sin(this.walkT)) * 0.8;
+    const sw = Math.sin(this.walkT);
+    this.legs[0].rotation.x = -sw * 0.75;
+    this.legs[1].rotation.x = sw * 0.75;
+    this.arms[0].rotation.x = sw * 0.5;
+    this.arms[1].rotation.x = -sw * 0.5;
+    this.head.position.y = 23.2 + Math.abs(sw) * 0.6 + Math.sin(this.walkT * 2) * 0.25;
   }
 
   die(byPlayer) {
@@ -281,10 +316,12 @@ class Player {
       const leg = new THREE.Mesh(new THREE.BoxGeometry(3.6, 10, 4), new THREE.MeshLambertMaterial({ color: 0x35507a }));
       leg.position.set(lx, 5, 0); this.group.add(leg); this.legs.push(leg);
     }
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(3, 9, 3), new THREE.MeshLambertMaterial({ color: 0xe8b48a }));
-    arm.position.set(-5.2, 16, 0); this.group.add(arm);
-    const rArm = new THREE.Mesh(new THREE.BoxGeometry(3, 9, 3), new THREE.MeshLambertMaterial({ color: 0xe8b48a }));
-    rArm.position.set(5.2, 16, 0); this.group.add(rArm);
+    const armGeo = new THREE.BoxGeometry(3, 9, 3);
+    armGeo.translate(0, -3.5, 0);
+    const arm = new THREE.Mesh(armGeo, new THREE.MeshLambertMaterial({ color: 0xe8b48a }));
+    arm.position.set(-5.2, 19, 0); this.group.add(arm); this.arms = [arm];
+    const rArm = new THREE.Mesh(armGeo, new THREE.MeshLambertMaterial({ color: 0xe8b48a }));
+    rArm.position.set(5.2, 19, 0); this.group.add(rArm); this.arms.push(rArm);
     const gun = new THREE.Mesh(new THREE.BoxGeometry(7, 3, 2), new THREE.MeshLambertMaterial({ color: 0x222222 }));
     gun.position.set(5.2, 17, 4.6); this.gun = gun; this.group.add(gun);
     this.gunVisible(true);

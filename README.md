@@ -1,8 +1,9 @@
 # GRAND THEFT AUTO VI — Fan Edition 3D 🌴
 
 Un mini « GTA-like » 3D (WebGL / three.js) dans l'univers de **Vice City / Leonida** :
-ville ouverte, voitures volables, police avec étoiles de recherche, missions, cycle
-jour/nuit et sons 100 % procéduraux (WebAudio).
+grande ville ouverte, voitures volables, police avec étoiles de recherche, missions,
+vue 1ʳᵉ/3ᵉ personne, cycle jour/nuit rendus ACES + bloom, et sons 100 % procéduraux
+(WebAudio).
 
 > Projet fan hommage, **non affilié** à Rockstar Games.
 
@@ -18,17 +19,24 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 | `W A S D` / Flèches | Marcher · Conduire |
 | Souris + Clic gauche | Viser et tirer |
 | `F` / `Entrée` | Monter / descendre d'un véhicule · Entrer dans un bâtiment |
+| `V` | Vue 1re / 3e personne |
 | `Espace` | Frein à main (drift) |
 | `H` | Klaxon |
 | `Échap` / `P` | Pause |
 
 ## 🚗 Contenu
 
-- **Ville de Leonida** : grille d'avenues, immeubles art-déco pastel avec fenêtres
-  éclairées la nuit, parc, plage et océan animés.
+- **Grande ville de Leonida** (×2,4) : grille d'avenues, immeubles art-déco pastel
+  avec rez-de-chaussée commerciaux, fenêtres éclairées la nuit, antennes et feux
+  clignotants sur les tours, lampadaires, parc, plage et océan animé.
+- **Rendu** : tone mapping ACES, bloom + antialiasing FXAA (désactivables en pause),
+  ciel dégradé jour/nuit avec étoiles et soleil, ombres douces, textures 256px
+  anisotropes (asphalte fissuré, trottoirs carrelés, sable, façades).
 - **5 types de véhicules** (Cheetah GTS, Regalia, Taxi Vice, Bobcat, VCPD Cruiser)
   avec physique de drift, dégâts, fumée et explosions en chaîne.
-- **Trafic et piétons** avec IA (conduite à droite, intersections, panique).
+- **Trafic et piétons** avec IA (conduite à droite, intersections, panique),
+  piétons animés (jambes/bras), rétroviseurs, jantes et plaques sur les véhicules.
+- **Vue 1ʳᵉ / 3ᵉ personne** : touche `V` pour basculer (à pied et au volant).
 - **Intérieurs visitables** : 8 lieux (Malibu Club, Café Néon, Hôtel Flamingo…) —
   portes orange sur les façades, **F pour entrer/sortir**, bar, barman, canapé,
   caisse d'argent à récolter — et une planque parfaite pour semer la police.

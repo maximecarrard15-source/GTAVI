@@ -48,6 +48,7 @@
       <tr><td>F / Entrée</td><td>Monter / descendre d'un véhicule</td></tr>
       <tr><td>Souris + Clic</td><td>Viser et tirer</td></tr>
       <tr><td>Espace</td><td>Frein à main (drift)</td></tr>
+      <tr><td>V</td><td>Vue 1re / 3e personne</td></tr>
       <tr><td>H</td><td>Klaxon</td></tr>
       <tr><td>Échap / P</td><td>Pause</td></tr>
       <tr><td>T</td><td>Chat (en multijoueur)</td></tr>
@@ -62,6 +63,7 @@
   <div class="menuBox">
     <h2 class="gtaTop big">PAUSE</h2>
     <button id="btnResume" class="menuBtn">REPRENDRE</button>
+    <button id="btnFx" class="menuBtn secondary">EFFETS VISUELS : ACTIVÉS</button>
     <button id="btnMenuBack" class="menuBtn secondary">MENU PRINCIPAL</button>
   </div>
 </div>
@@ -94,6 +96,13 @@
 </div>
 
 <script src="js/vendor/three.min.js"></script>
+<script src="js/vendor/post/CopyShader.js"></script>
+<script src="js/vendor/post/LuminosityHighPassShader.js"></script>
+<script src="js/vendor/post/FXAAShader.js"></script>
+<script src="js/vendor/post/EffectComposer.js"></script>
+<script src="js/vendor/post/RenderPass.js"></script>
+<script src="js/vendor/post/ShaderPass.js"></script>
+<script src="js/vendor/post/UnrealBloomPass.js"></script>
 <script src="js/vendor/peerjs.min.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/input.js"></script>

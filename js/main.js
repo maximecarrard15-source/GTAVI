@@ -2,9 +2,9 @@ const Game = {
   scene: null, camera: null, renderer: null, canvas: null, group: null,
   player: null, cars: [], peds: [], bullets: [], particles: [], pickups: [],
   state: 'menu', dayT: 260, camYaw: 0, camPos: new THREE.Vector3(),
-  dirtyHUD: true, dirtyCars: true, deadT: 0, prevF: false,
+  dirtyHUD: true, dirtyCars: true, deadT: 0, prevF: false, prevV: false,
   bannerEl: null, sprayMarker: null, hospitalMarker: null, lastFrame: 0,
-  keys: {}, hemi: null, sun: null, windowMats: null,
+  keys: {}, hemi: null, sun: null, windowMats: null, camMode: 0, fxOn: true, composer: null,
 
   playerPos() { return this.player.car ? this.player.car.pos : this.player.pos; },
 
@@ -16,10 +16,12 @@ const Game = {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.22;
     this.scene = new THREE.Scene();
     this.scene.background = City.skyDay.clone();
-    this.scene.fog = new THREE.Fog(City.skyDay.clone().getHex(), 700, 3200);
-    this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.5, 6000);
+    this.scene.fog = new THREE.Fog(City.skyDay.clone().getHex(), 600, 4300);
+    this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.5, 13000);
     this.camera.position.set(150, 60, 400);
     this.group = new THREE.Group();
     this.scene.add(this.group);
@@ -41,18 +43,31 @@ const Game = {
     City.build(this.scene);
     this.windowMats = City.windowMats;
 
+    try {
+      this.composer = new THREE.EffectComposer(this.renderer);
+      this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      this.composer.setSize(window.innerWidth, window.innerHeight);
+      this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+      this.bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.65, 0.78);
+      this.composer.addPass(this.bloom);
+      this.fxaa = new THREE.ShaderPass(THREE.FXAAShader);
+      const pr = this.composer.getPixelRatio ? this.composer.getPixelRatio() : this.renderer.getPixelRatio();
+      this.fxaa.material.uniforms['resolution'].value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+      this.composer.addPass(this.fxaa);
+    } catch (e) { this.composer = null; }
+
     this.player = new Player();
     this.group.add(this.player.group);
 
-    for (let i = 0; i < 16; i++) this.spawnTraffic();
-    for (let i = 0; i < 45; i++) {
+    for (let i = 0; i < 26; i++) this.spawnTraffic();
+    for (let i = 0; i < 70; i++) {
       const pt = City.randomSidewalkPoint();
       if (Math.hypot(pt.x - this.player.pos.x, pt.z - this.player.pos.z) < 250) continue;
       const ped = new Ped(pt.x, pt.z);
       this.peds.push(ped); this.group.add(ped.group);
     }
 
-    for (let i = 0; i < 10; i++) this.spawnPickup(true);
+    for (let i = 0; i < 14; i++) this.spawnPickup(true);
 
     const mk = (color) => new THREE.Mesh(
       new THREE.CylinderGeometry(18, 18, 50, 12),
@@ -85,6 +100,11 @@ const Game = {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+      if (this.composer) {
+        this.composer.setSize(window.innerWidth, window.innerHeight);
+        const pr = this.composer.getPixelRatio ? this.composer.getPixelRatio() : this.renderer.getPixelRatio();
+        if (this.fxaa) this.fxaa.material.uniforms['resolution'].value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+      }
     });
 
     requestAnimationFrame(t => this.loop(t));
@@ -101,6 +121,10 @@ const Game = {
     document.getElementById('btnHelp').onclick = () => { show('menu', false); show('help', true); };
     document.getElementById('btnBack').onclick = () => { show('help', false); show('menu', true); };
     document.getElementById('btnResume').onclick = () => { show('pause', false); this.state = 'playing'; };
+    document.getElementById('btnFx').onclick = () => {
+      this.fxOn = !this.fxOn;
+      document.getElementById('btnFx').textContent = 'EFFETS VISUELS : ' + (this.fxOn ? 'ACTIVÉS' : 'DÉSACTIVÉS');
+    };
     document.getElementById('btnMenuBack').onclick = () => { show('pause', false); show('menu', true); this.state = 'menu'; };
   },
 
@@ -112,6 +136,7 @@ const Game = {
     this.state = 'playing';
     if (Net.mode !== 'offline') Net.system('Tu es ' + Net.myName + (Net.mode === 'host' ? ' (hôte)' : '') + '. Appuie sur T pour chatter.');
     this.banner('BIENVENUE À LEONIDA');
+    this.toast('V pour changer de vue, F pour entrer dans les bâtiments');
     setTimeout(() => this.bannerEl.classList.remove('show'), 3500);
   },
 
@@ -515,9 +540,23 @@ const Game = {
     }
     const night = nf > 0.5;
     this.scene.background.copy(City.skyDay).lerp(City.skyNight, nf);
-    this.scene.fog.color.copy(this.scene.background);
+    if (City.skyU) {
+      City.skyU.top.value.setHex(0x3a92dd).lerp(City.skyNight, nf);
+      City.skyU.bot.value.setHex(0xd4ecfa).lerp(new THREE.Color(0x101a3a), nf);
+      this.scene.fog.color.copy(City.skyU.bot.value);
+    } else {
+      this.scene.fog.color.copy(this.scene.background);
+    }
+    if (City.starMat) City.starMat.opacity = nf;
+    if (City.sunSprite) City.sunSprite.material.opacity = Math.max(0, 1 - nf * 1.5) * 0.9;
+    if (City.lampGlow) City.lampGlow.material.opacity = Math.min(1, nf * 1.5) * 0.85;
+    if (City.headMat) City.headMat.visible = night;
+    for (const b of City.beacons) b.visible = Math.sin(this.dayT * 3.5 + b.position.x) > 0;
     this.hemi.intensity = 0.95 - nf * 0.75;
+    this.hemi.color.setHex(night ? 0x4a5f8a : 0xcfe8ff);
+    this.hemi.groundColor.setHex(night ? 0x1a2233 : 0x4a5a3a);
     this.sun.intensity = 0.8 - nf * 0.72;
+    this.sun.color.setHex(night ? 0xaab8e8 : 0xfff4d6);
     if (this.windowMats) for (const m of this.windowMats) { m.emissive.setHex(night ? 0x9a5f1e : 0x000000).multiplyScalar(Math.min(1, nf * 2)); m.emissiveIntensity = Math.min(1.3, nf * 2.6); }
     for (const c of this.cars) c.setNight(night);
     const h = Math.floor(((this.dayT % 300) / 300) * 24);
@@ -611,7 +650,7 @@ const Game = {
       const d = c.pos.distanceTo(this.playerPos());
       if (c.driver === 'ai' && d > 1900) this.removeCar(c);
     }
-    if (this.cars.filter(c => c.driver === 'ai' && !c.dead).length < 14) this.spawnTraffic();
+    if (this.cars.filter(c => c.driver === 'ai' && !c.dead).length < 22) this.spawnTraffic();
   },
 
   updatePeds(dt) {
@@ -635,6 +674,29 @@ const Game = {
 
   updateCamera(dt) {
     const p = this.playerPos();
+    const fp = this.camMode === 1;
+    const k = 1 - Math.pow(0.0005, dt);
+    if (fp) {
+      if (this.player.car) {
+        const c = this.player.car;
+        this.camYaw = c.angle;
+        const fs = Math.cos(c.angle), fs2 = Math.sin(c.angle);
+        this.camera.position.set(c.pos.x + fs * c.t.len * 0.12, 20.5, c.pos.z + fs2 * c.t.len * 0.12);
+        this.camera.lookAt(c.pos.x + fs * 200, 20.5, c.pos.z + fs2 * 200);
+      } else {
+        if (this.player.moveDir !== null && this.player.moveDir !== undefined) {
+          let diff = this.player.moveDir - this.camYaw;
+          while (diff > Math.PI) diff -= 2 * Math.PI;
+          while (diff < -Math.PI) diff += 2 * Math.PI;
+          this.camYaw += diff * Math.min(1, dt * 9);
+        }
+        const fx = Math.cos(this.camYaw), fz = Math.sin(this.camYaw);
+        const hy = this.player.interior ? 19 : 21;
+        this.camera.position.set(p.x + fx * 5, hy, p.z + fz * 5);
+        this.camera.lookAt(p.x + fx * 120, hy, p.z + fz * 120);
+      }
+      return;
+    }
     if (this.player.car) {
       const c = this.player.car;
       const f = Math.hypot(c.vx, c.vz);
@@ -654,7 +716,7 @@ const Game = {
       }
       const inside = !!this.player.interior;
       const dist = inside ? 26 : 30;
-      this.camera.position.lerp(new THREE.Vector3(p.x - Math.cos(this.camYaw) * dist, inside ? 36 : 17, p.z - Math.sin(this.camYaw) * dist), 1 - Math.pow(0.0005, dt));
+      this.camera.position.lerp(new THREE.Vector3(p.x - Math.cos(this.camYaw) * dist, inside ? 36 : 17, p.z - Math.sin(this.camYaw) * dist), k);
     }
     this.camera.lookAt(p.x, this.player.interior ? 4 : 12, p.z);
   },
@@ -740,6 +802,9 @@ const Game = {
     if (this.state === 'playing' && !this.player.deadState) {
       if (Input.isDown('Escape', 'KeyP')) { this.state = 'paused'; document.getElementById('pause').classList.remove('hidden'); if (Net.chatOpen) Net.closeChat(); Sound.setEngine(0, false); }
       if (Net.mode !== 'offline') Net.handleKeys();
+      const v = Input.isDown('KeyV');
+      if (v && !this.prevV) { this.camMode = 1 - this.camMode; this.toast(this.camMode ? '👁 Vue : première personne' : '🎥 Vue : troisième personne'); }
+      this.prevV = v;
       this.tryEnterExit();
       const client = Net.mode === 'client';
       if (!client) {
@@ -777,14 +842,15 @@ const Game = {
       this.drawMinimap();
       if (this.player.group) {
         this.player.group.rotation.y = -this.player.angle;
-        if (this.player.car) this.player.group.visible = false; else this.player.group.visible = true;
+        this.player.group.visible = !this.player.car && this.camMode !== 1;
       }
     } else if (this.state === 'playing' && this.player.deadState) {
       this.deadStateLoop(dt);
       this.particlesUpdate(dt);
       this.updateCamera(dt);
     }
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer && this.fxOn) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   },
 
   updatePlayerWalk(dt) {
@@ -805,10 +871,15 @@ const Game = {
       this.player.walkT = (this.player.walkT || 0) + dt * 10;
       this.player.legs[0].position.z = Math.sin(this.player.walkT) * 2.4;
       this.player.legs[1].position.z = -Math.sin(this.player.walkT) * 2.4;
+      const sw = Math.sin(this.player.walkT);
+      this.player.arms[0].rotation.x = -sw * 0.6;
+      this.player.arms[1].rotation.x = sw * 0.25;
     } else {
       this.player.moveDir = null;
       this.player.legs[0].position.z = 0;
       this.player.legs[1].position.z = 0;
+      this.player.arms[0].rotation.x = 0;
+      this.player.arms[1].rotation.x = 0;
     }
     if (!this.player.interior) City.clampToLand(this.player.pos, 8);
     City.collide(this.player.pos, 8);
