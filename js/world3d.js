@@ -234,7 +234,7 @@ const City = {
           mesh.position.set(bx, hgt / 2, bz);
           mesh.castShadow = true; mesh.receiveShadow = true;
           this.group.add(mesh);
-          const para = new THREE.Mesh(new THREE.BoxGeometry(hw * 2 + 4, 5, hd * 2 + 4), new THREE.MeshLambertMaterial({ color: new THREE.Color(p).multiplyScalar(0.32) }));
+          const para = new THREE.Mesh(new THREE.BoxGeometry(hw * 2 + 4, 5, hd * 2 + 4), new THREE.MeshLambertMaterial({ color: m.top.color.clone().multiplyScalar(0.8) }));
           para.position.set(bx, hgt + 2, bz);
           this.group.add(para);
           if (Math.random() < 0.5) {
@@ -275,7 +275,7 @@ const City = {
       let bestRoad = null, bestD = 1e9, axis = 'x';
       for (const rx of WORLD.Xs) { const d = Math.abs((b.x - b.hw) - rx); if (d < bestD) { bestD = d; bestRoad = rx; axis = 'x'; } if (Math.abs((b.x + b.hw) - rx) < bestD) { bestD = Math.abs((b.x + b.hw) - rx); bestRoad = rx; axis = 'x'; } }
       for (const rz of WORLD.Ys) { const d = Math.abs((b.z - b.hd) - rz); if (d < bestD) { bestD = d; bestRoad = rz; axis = 'z'; } if (Math.abs((b.z + b.hd) - rz) < bestD) { bestD = Math.abs((b.z + b.hd) - rz); bestRoad = rz; axis = 'z'; } }
-      if (bestD > 60) continue;
+      if (bestD > 80) continue;
       if (chosen.some(c => Math.hypot(c.door.x - b.x, c.door.z - b.z) < 500)) continue;
       const door = axis === 'x'
         ? { x: (b.x < bestRoad ? b.x - b.hw - 8 : b.x + b.hw + 8), z: b.z }
