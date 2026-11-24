@@ -106,8 +106,10 @@ const Missions = {
           obj.setObjective('Colis restants : ' + obj.packages.filter(p => !p.got).length + ' — ' + Math.ceil(obj.timer) + 's');
           Missions.setMarker(next.pos, 0xb5651d);
           for (const p of obj.packages) {
-            if (!p.got && pos.distanceTo(p.pos) < 30) {
-              p.got = true; Game.group.remove(p.mesh); Sound.ding(); Game.toast('Colis récupéré !');
+            if (!p.got && pos.distanceTo(p.pos) < 36) {
+              p.got = true; Game.group.remove(p.mesh); Sound.ding(); Game.toast('Colis récupéré ! (' + obj.packages.filter(q => q.got).length + '/3)');
+              const nx2 = obj.packages.find(q => !q.got);
+              if (nx2) Missions.setMarker(nx2.pos, 0xb5651d);
             }
           }
         } else return 'done';

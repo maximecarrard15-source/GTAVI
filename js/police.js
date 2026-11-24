@@ -1,6 +1,6 @@
 const Police = {
   list: [], wanted: 0, heat: 0, sight: 0, blinkT: 0, bustT: 0,
-  STARS: [0, 3, 8, 15, 25],
+  STARS: [0, 4, 12, 22, 34],
 
   reset() {
     for (const c of this.list) Game.removeCar(c);
@@ -42,10 +42,11 @@ const Police = {
       if (this.wanted === 0) Game.toast('▷ Tu as semé la police.');
     }
     if (this.wanted === 0 && this.heat > 0) this.heat = Math.max(0, this.heat - dt * 0.25);
+    if (this.wanted >= 1 && this.wanted < 5 && close) this.heat += dt * 0.25;
 
     const want = Game.player.deadState ? 0 : Math.min(5, this.wanted);
     const alive = this.list.filter(c => !c.dead).length;
-    if (alive < want * 2 - (want > 2 ? 1 : 0)) {
+    if (alive < want * 2 + (want >= 4 ? 2 : 0)) {
       const spot = this.randomRoadSpot(1100);
       if (spot) {
         const cop = new Car('police', spot.x, spot.z, Math.floor(Math.random() * 4) % 2 === 0 ? 0 : Math.PI);
@@ -64,8 +65,8 @@ const Police = {
         this.driveCop(c, dt, p);
         c.shootCd -= dt;
         const d = c.pos.distanceTo(p);
-        if (this.wanted >= 2 && d < 200 && c.shootCd <= 0 && Math.abs(c.forwardSpd()) < 320) {
-          c.shootCd = 0.8;
+        if (this.wanted >= 2 && d < 220 && c.shootCd <= 0 && Math.abs(c.forwardSpd()) < 320) {
+          c.shootCd = 1.6;
           Game.copShoot(c, p);
         }
       }

@@ -5,11 +5,11 @@ function makeBlobShadow(size) {
 }
 
 const CAR_TYPES = {
-  sport: { name: 'Cheetah GTS', len: 46, wid: 19, accel: 620, maxF: 760, maxR: -220, colors: [0xff3860, 0x22d3ee, 0xffd23c, 0xffffff], hp: 100 },
-  sedan: { name: 'Regalia', len: 48, wid: 21, accel: 430, maxF: 580, maxR: -200, colors: [0x9aa4b0, 0x4a6fd4, 0xc47fe8, 0x59c98f, 0x302f38], hp: 120 },
-  taxi: { name: 'Taxi Vice', len: 48, wid: 21, accel: 430, maxF: 580, maxR: -200, colors: [0xf7c948], hp: 120 },
-  pickup: { name: 'Bobcat', len: 52, wid: 23, accel: 380, maxF: 520, maxR: -180, colors: [0x8a5a33, 0x556b2f, 0x708090], hp: 150 },
-  police: { name: 'VCPD Cruiser', len: 50, wid: 22, accel: 560, maxF: 700, maxR: -220, colors: [0xf4f4f4], hp: 160 }
+  sport: { name: 'Cheetah GTS', len: 46, wid: 19, accel: 430, maxF: 700, maxR: -200, colors: [0xff3860, 0x22d3ee, 0xffd23c, 0xffffff], hp: 100 },
+  sedan: { name: 'Regalia', len: 48, wid: 21, accel: 330, maxF: 560, maxR: -180, colors: [0x9aa4b0, 0x4a6fd4, 0xc47fe8, 0x59c98f, 0x302f38], hp: 120 },
+  taxi: { name: 'Taxi Vice', len: 48, wid: 21, accel: 330, maxF: 560, maxR: -180, colors: [0xf7c948], hp: 120 },
+  pickup: { name: 'Bobcat', len: 52, wid: 23, accel: 290, maxF: 500, maxR: -170, colors: [0x8a5a33, 0x556b2f, 0x708090], hp: 150 },
+  police: { name: 'VCPD Cruiser', len: 50, wid: 22, accel: 430, maxF: 660, maxR: -200, colors: [0xf4f4f4], hp: 160 }
 };
 
 class Car {
@@ -26,12 +26,38 @@ class Car {
     this.group = new THREE.Group();
 
     const color = t.colors[Math.floor(Math.random() * t.colors.length)];
-    this.bodyMat = new THREE.MeshPhongMaterial({ color, shininess: 70 });
+    this.bodyMat = new THREE.MeshPhongMaterial({ color, shininess: 100, specular: 0x666666 });
     const body = new THREE.Mesh(new THREE.BoxGeometry(t.len, 11, t.wid), this.bodyMat);
-    body.position.y = 9; this.group.add(body);
-    const cabinMat = new THREE.MeshPhongMaterial({ color: 0x18202e, shininess: 90 });
+    body.position.y = 9; body.castShadow = true; this.group.add(body);
+    const cabinMat = new THREE.MeshPhongMaterial({ color: 0x101b30, shininess: 140, specular: 0x99bbff });
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.45, 9, t.wid * 0.82), cabinMat);
-    cabin.position.set(-t.len * 0.05, 18.5, 0); this.group.add(cabin);
+    cabin.position.set(-t.len * 0.05, 18.5, 0); cabin.castShadow = true; this.group.add(cabin);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.46, 6, t.wid * 0.86), new THREE.MeshPhongMaterial({ color: 0x4a90c2, transparent: true, opacity: 0.35, shininess: 160 }));
+    glass.position.set(-t.len * 0.05, 19.5, 0); this.group.add(glass);
+    const bumpMat = new THREE.MeshLambertMaterial({ color: 0x1a1d22 });
+    for (const bx of [t.len / 2 - 1, -t.len / 2 + 1]) {
+      const bump = new THREE.Mesh(new THREE.BoxGeometry(4, 5, t.wid + 1), bumpMat);
+      bump.position.set(bx, 5.5, 0); this.group.add(bump);
+    }
+    const tailMat = new THREE.MeshBasicMaterial({ color: 0xff3526 });
+    for (const hz of [-t.wid / 2 + 4, t.wid / 2 - 4]) {
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 4), tailMat);
+      tl.position.set(-t.len / 2 - 0.4, 10, hz); this.group.add(tl);
+    }
+    if (type === 'sport') {
+      const spoiler = new THREE.Mesh(new THREE.BoxGeometry(4, 2, t.wid * 0.9), this.bodyMat);
+      spoiler.position.set(-t.len / 2 + 2, 17, 0); this.group.add(spoiler);
+    }
+    if (type === 'taxi') {
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 5), new THREE.MeshBasicMaterial({ color: 0xffe066 }));
+      sign.position.set(2, 25, 0); this.group.add(sign);
+    }
+    if (this.isPolice) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.25, 11.2, t.wid + 0.4), new THREE.MeshPhongMaterial({ color: 0x14213d, shininess: 80 }));
+      stripe.position.set(0, 9, 0); this.group.add(stripe);
+      const hoodTxt = new THREE.Mesh(new THREE.BoxGeometry(1, 2.5, 12), new THREE.MeshBasicMaterial({ color: 0x14213d }));
+      hoodTxt.position.set(t.len / 2 - 6, 15, 0); this.group.add(hoodTxt);
+    }
     if (this.isPolice) {
       this.bar1 = new THREE.Mesh(new THREE.BoxGeometry(4, 3.5, 3.5), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
       this.bar1.position.set(0, 24.5, -4); this.group.add(this.bar1);
@@ -185,6 +211,10 @@ class Ped {
     torso.position.y = 14; this.group.add(torso);
     const head = new THREE.Mesh(new THREE.SphereGeometry(3.4, 8, 6), new THREE.MeshLambertMaterial({ color: skin }));
     head.position.y = 21.5; this.group.add(head);
+    for (const ax of [-5.2, 5.2]) {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(2.6, 8, 2.6), new THREE.MeshLambertMaterial({ color: shirt }));
+      arm.position.set(ax, 13.5, 0); this.group.add(arm);
+    }
     this.legMat = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
     for (const lx of [-2, 2]) {
       const leg = new THREE.Mesh(new THREE.BoxGeometry(3, 9, 3.4), this.legMat);
@@ -227,7 +257,7 @@ class Ped {
   die(byPlayer) {
     if (this.dead) return;
     this.dead = true;
-    if (byPlayer) Police.crime(1.6);
+    if (byPlayer) Police.crime(2.2);
   }
 }
 
@@ -241,7 +271,7 @@ class Player {
     this.shootCd = 0;
     this.group = new THREE.Group();
     const torso = new THREE.Mesh(new THREE.BoxGeometry(9, 11, 5.5), new THREE.MeshPhongMaterial({ color: 0x2ec4b6, shininess: 30 }));
-    torso.position.y = 15.5; this.group.add(torso);
+    torso.position.y = 15.5; torso.castShadow = true; this.group.add(torso);
     const head = new THREE.Mesh(new THREE.SphereGeometry(3.8, 10, 8), new THREE.MeshLambertMaterial({ color: 0xe8b48a }));
     head.position.y = 24; this.group.add(head);
     const hair = new THREE.Mesh(new THREE.SphereGeometry(3.9, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x2a1e16 }));

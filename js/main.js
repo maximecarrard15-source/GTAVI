@@ -14,6 +14,8 @@ const Game = {
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.scene = new THREE.Scene();
     this.scene.background = City.skyDay.clone();
     this.scene.fog = new THREE.Fog(City.skyDay.clone().getHex(), 700, 3200);
@@ -25,8 +27,16 @@ const Game = {
     this.hemi = new THREE.HemisphereLight(0xcfe8ff, 0x4a5a3a, 0.95);
     this.scene.add(this.hemi);
     this.sun = new THREE.DirectionalLight(0xfff4d6, 0.8);
-    this.sun.position.set(1200, 1800, 600);
+    this.sun.position.set(600, 1200, 300);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.camera.near = 100;
+    this.sun.shadow.camera.far = 3400;
+    this.sun.shadow.camera.left = -700; this.sun.shadow.camera.right = 700;
+    this.sun.shadow.camera.top = 700; this.sun.shadow.camera.bottom = -700;
+    this.sun.shadow.bias = -0.0004;
     this.scene.add(this.sun);
+    this.scene.add(this.sun.target);
 
     City.build(this.scene);
     this.windowMats = City.windowMats;
@@ -218,7 +228,7 @@ const Game = {
       const dmg = 95 * (1 - pp.distanceTo(pos) / R);
       if (c2) c2.damage(dmg, false); else this.player.damage(dmg);
     }
-    Police.crime(this.player.car ? 0 : 1.5);
+    Police.crime(this.player.car ? 0.5 : 2.5);
   },
 
   shoot(fromPos, dir, byCop, dmg, weapon) {
@@ -231,7 +241,10 @@ const Game = {
 
   copShoot(cop, target) {
     const d = new THREE.Vector3(target.x - cop.pos.x, 0, target.z - cop.pos.z).normalize();
-    this.shoot(cop.pos, d, true, 7 + Police.wanted * 1.5, null);
+    const spread = (Math.random() - 0.5) * 0.35;
+    const cos = Math.cos(spread), sin = Math.sin(spread);
+    const dx = d.x * cos - d.z * sin, dz = d.x * sin + d.z * cos;
+    this.shoot(cop.pos, new THREE.Vector3(dx, 0, dz), true, 3.5 + Police.wanted * 0.9, null);
   },
 
   bulletUpdate(dt) {
@@ -335,7 +348,7 @@ const Game = {
       return;
     }
     this.shoot(from.add(ray.clone().normalize().multiplyScalar(16)), ray, false, w.dmg, this.player.weapon);
-    Police.crime(0.05);
+    Police.crime(0.15);
     for (const pd of this.peds) pd.scare(this.playerPos().x, this.playerPos().z);
   },
 
@@ -439,12 +452,18 @@ const Game = {
 
   dayNight() {
     const nf = this.nightFactor();
+    const pp = this.playerPos();
+    if (this.sun && this.sun.castShadow) {
+      this.sun.position.set(pp.x + 600, 1200, pp.z + 300);
+      this.sun.target.position.set(pp.x, 0, pp.z);
+      this.sun.target.updateMatrixWorld();
+    }
     const night = nf > 0.5;
     this.scene.background.copy(City.skyDay).lerp(City.skyNight, nf);
     this.scene.fog.color.copy(this.scene.background);
     this.hemi.intensity = 0.95 - nf * 0.75;
     this.sun.intensity = 0.8 - nf * 0.72;
-    if (this.windowMats) for (const m of this.windowMats) m.emissive.setHex(night ? 0x9a5f1e : 0x000000).multiplyScalar(Math.min(1, nf * 2));
+    if (this.windowMats) for (const m of this.windowMats) { m.emissive.setHex(night ? 0x9a5f1e : 0x000000).multiplyScalar(Math.min(1, nf * 2)); m.emissiveIntensity = Math.min(1.3, nf * 2.6); }
     for (const c of this.cars) c.setNight(night);
     const h = Math.floor(((this.dayT % 300) / 300) * 24);
     const mn = Math.floor((((this.dayT % 300) / 300) * 24 % 1) * 60);
