@@ -60,6 +60,19 @@ const Game = {
     );
     this.sprayMarker = mk(0x39c0ff); this.sprayMarker.position.set(City.spray.x, 25, City.spray.z); this.scene.add(this.sprayMarker);
     this.hospitalMarker = mk(0xffffff); this.hospitalMarker.position.set(City.hospital.x, 25, City.hospital.z); this.scene.add(this.hospitalMarker);
+    this.interiorLight = new THREE.PointLight(0xffc58a, 0, 900, 2);
+    this.interiorLight.position.set(0, 45, 0);
+    this.scene.add(this.interiorLight);
+    for (const it of City.interiors) {
+      const dm = new THREE.Mesh(
+        new THREE.BoxGeometry(30, 26, 3),
+        new THREE.MeshBasicMaterial({ color: 0xffa726, transparent: true, opacity: 0.75 })
+      );
+      dm.position.set(it.door.x, 13, it.door.z);
+      this.scene.add(dm);
+      it.doorMesh = dm;
+      it._hinted = false;
+    }
     Missions.buildMeshes(this.scene);
 
     this.bannerEl = document.getElementById('missionBanner');
@@ -297,10 +310,52 @@ const Game = {
     }
   },
 
+  nearestDoor() {
+    let best = null, bd = 34;
+    const p = this.playerPos();
+    for (const it of City.interiors) {
+      const d = Math.hypot(p.x - it.door.x, p.z - it.door.z);
+      if (d < bd) { bd = d; best = it; }
+    }
+    return best;
+  },
+
+  enterInterior(it) {
+    this.player.returnPos = this.player.pos.clone();
+    this.player.pos.set(it.enter.x, 0, it.enter.y === undefined ? it.enter.z : it.enter.y);
+    this.player.interior = it;
+    this.player.moveDir = null;
+    it.light = it.light || null;
+    if (this.interiorLight) { this.interiorLight.position.set(it.room.x, 45, it.room.z); this.interiorLight.intensity = 1.7; }
+    Sound.ding();
+    this.toast('🏠 ' + it.name + ' — F près du marqueur rose pour sortir');
+  },
+
+  exitInterior() {
+    const it = this.player.interior;
+    this.player.pos.copy(this.player.returnPos || new THREE.Vector3(it.door.x, 0, it.door.z));
+    this.player.interior = null;
+    if (this.interiorLight) this.interiorLight.intensity = 0;
+    City.collide(this.player.pos, 8);
+    Sound.ding();
+  },
+
   tryEnterExit() {
     const f = Input.isDown('KeyF', 'Enter');
-    if (Net.mode === 'client') { Net.clientEnterExit(f); this.prevF = f; return; }
     if (f && !this.prevF) {
+      if (this.player.car) {
+        if (Net.mode === 'client') { Net.clientEnterExit('exit'); this.prevF = f; return; }
+      } else {
+        if (this.player.interior) {
+          const it = this.player.interior;
+          const p = this.player.pos;
+          if (Math.hypot(p.x - it.exit.x, p.z - it.exit.z) < 40) { this.exitInterior(); this.prevF = f; return; }
+        } else {
+          const door = this.nearestDoor();
+          if (door) { this.enterInterior(door); this.prevF = f; return; }
+        }
+      }
+      if (Net.mode === 'client') { Net.clientEnterExit(this.player.car ? 'exit' : 'enter'); this.prevF = f; return; }
       if (this.player.car) {
         const car = this.player.car;
         if (Math.abs(car.forwardSpd()) > 260) { this.toast('Trop rapide pour sortir !'); }
@@ -597,10 +652,42 @@ const Game = {
         while (diff < -Math.PI) diff += 2 * Math.PI;
         this.camYaw += diff * Math.min(1, dt * 4);
       }
-      const dist = 30;
-      this.camera.position.lerp(new THREE.Vector3(p.x - Math.cos(this.camYaw) * dist, 17, p.z - Math.sin(this.camYaw) * dist), 1 - Math.pow(0.0005, dt));
+      const inside = !!this.player.interior;
+      const dist = inside ? 26 : 30;
+      this.camera.position.lerp(new THREE.Vector3(p.x - Math.cos(this.camYaw) * dist, inside ? 36 : 17, p.z - Math.sin(this.camYaw) * dist), 1 - Math.pow(0.0005, dt));
     }
-    this.camera.lookAt(p.x, 12, p.z);
+    this.camera.lookAt(p.x, this.player.interior ? 4 : 12, p.z);
+  },
+
+  interiorLogic(dt) {
+    for (const it of City.interiors) {
+      if (it.exitMesh) it.exitMesh.rotation.y += dt * 1.5;
+      if (it.cash.mesh) {
+        it.cash.mesh.rotation.y += dt * 1.5;
+        it.cash.mesh.position.y = 10 + Math.sin(this.dayT * 3) * 1.5;
+      }
+      it.cash.cd -= dt;
+    }
+    if (Net.chatOpen) return;
+    const p = this.playerPos();
+    if (this.player.interior) {
+      const it = this.player.interior;
+      const nearExit = Math.hypot(p.x - it.exit.x, p.z - it.exit.z) < 40;
+      if (nearExit && !it._exitHint) { this.toast('F — Sortir'); it._exitHint = true; }
+      if (!nearExit) it._exitHint = false;
+      if (it.cash.cd <= 0 && Math.hypot(p.x - it.cash.x, p.z - it.cash.z) < 24) {
+        const v = 80 + Math.floor(Math.random() * 140);
+        this.player.money += v;
+        it.cash.cd = 45;
+        Sound.cash();
+        this.toast('+ $' + v);
+        this.dirtyHUD = true;
+      }
+    } else {
+      const door = this.nearestDoor();
+      if (door && !door._hinted) { this.toast('F — Entrer au ' + door.name); door._hinted = true; }
+      if (!door) for (const it of City.interiors) it._hinted = false;
+    }
   },
 
   updateHUD() {
@@ -674,6 +761,7 @@ const Game = {
       if (Input.isDown('KeyH')) Sound.horn();
       if (!this.player.car) {
         this.updatePlayerWalk(dt);
+        this.interiorLogic(dt);
         if (this.player.health <= 0) this.wasted();
       } else {
         this.player.pos.copy(this.player.car.pos);
@@ -722,7 +810,7 @@ const Game = {
       this.player.legs[0].position.z = 0;
       this.player.legs[1].position.z = 0;
     }
-    City.clampToLand(this.player.pos, 8);
+    if (!this.player.interior) City.clampToLand(this.player.pos, 8);
     City.collide(this.player.pos, 8);
     this.player.group.position.copy(this.player.pos);
   }

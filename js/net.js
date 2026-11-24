@@ -439,17 +439,15 @@ const Net = {
     for (const [, mesh] of this.pickupGhosts) mesh.position.y = 7 + Math.sin(performance.now() / 300 + i++) * 2;
   },
 
-  clientEnterExit(f) {
-    if (f && !this._prevF) {
-      try {
-        if (Game.player.car) this.hostConn.send({ t: 'exit' });
-        else {
-          const p = Game.playerPos();
-          this.hostConn.send({ t: 'enter', x: p.x, z: p.z });
-        }
-      } catch (e) {}
-    }
-    this._prevF = f;
+  clientEnterExit(action) {
+    if (this.mode !== 'client' || !this.hostConn || !this.hostConn.open) return;
+    try {
+      if (action === 'exit') this.hostConn.send({ t: 'exit' });
+      else {
+        const p = Game.playerPos();
+        this.hostConn.send({ t: 'enter', x: +p.x.toFixed(1), z: +p.z.toFixed(1) });
+      }
+    } catch (e) {}
   },
 
   sendShot(from, dir, dmg) {

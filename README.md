@@ -17,7 +17,7 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 |---|---|
 | `W A S D` / Flèches | Marcher · Conduire |
 | Souris + Clic gauche | Viser et tirer |
-| `F` / `Entrée` | Monter / descendre d'un véhicule |
+| `F` / `Entrée` | Monter / descendre d'un véhicule · Entrer dans un bâtiment |
 | `Espace` | Frein à main (drift) |
 | `H` | Klaxon |
 | `Échap` / `P` | Pause |
@@ -29,6 +29,9 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 - **5 types de véhicules** (Cheetah GTS, Regalia, Taxi Vice, Bobcat, VCPD Cruiser)
   avec physique de drift, dégâts, fumée et explosions en chaîne.
 - **Trafic et piétons** avec IA (conduite à droite, intersections, panique).
+- **Intérieurs visitables** : 8 lieux (Malibu Club, Café Néon, Hôtel Flamingo…) —
+  portes orange sur les façades, **F pour entrer/sortir**, bar, barman, canapé,
+  caisse d'argent à récolter — et une planque parfaite pour semer la police.
 - **Police VCPD** : 5 étoiles de recherche, poursuites, gyrophare + sirène,
   tirs d'agents, arrestation (BUSTED) et mort (WASTED).
 - **4 missions** : Livraison Express, Vice Rush (course à checkpoints),
