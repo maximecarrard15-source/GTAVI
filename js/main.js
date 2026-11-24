@@ -659,3 +659,11 @@ const Game = {
     this.player.group.position.copy(this.player.pos);
   }
 };
+
+window.addEventListener('load', () => {
+  if (typeof THREE === 'undefined') {
+    console.error('three.js introuvable');
+    return;
+  }
+  Game.init();
+});
