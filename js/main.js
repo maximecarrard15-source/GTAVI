@@ -433,6 +433,12 @@ const Game = {
   },
 
   aimRay() {
+    if (Input.locked || this.camMode === 1) {
+      const d = new THREE.Vector3();
+      this.camera.getWorldDirection(d);
+      d.y = 0;
+      return d.lengthSq() < 0.001 ? new THREE.Vector3(1, 0, 0) : d.normalize();
+    }
     const ndc = new THREE.Vector2(
       (this.mouseX() / window.innerWidth) * 2 - 1,
       -(this.mouseY() / window.innerHeight) * 2 + 1
@@ -504,6 +510,7 @@ const Game = {
 
   wasted() {
     this.player.deadState = true; this.deadT = 2.8;
+    Input.releaseLock();
     this.el.wastedTxt.textContent = 'WASTED';
     this.el.wasted.classList.remove('hidden');
     Sound.stopEngine(); Sound.failed();
@@ -512,6 +519,7 @@ const Game = {
   },
 
   busted() {
+    Input.releaseLock();
     this.el.wastedTxt.textContent = 'BUSTED';
     this.el.wasted.classList.remove('hidden');
     Sound.stopEngine(); Sound.failed();
@@ -674,51 +682,25 @@ const Game = {
 
   updateCamera(dt) {
     const p = this.playerPos();
-    const fp = this.camMode === 1;
-    const k = 1 - Math.pow(0.0005, dt);
-    if (fp) {
-      if (this.player.car) {
-        const c = this.player.car;
-        this.camYaw = c.angle;
-        const fs = Math.cos(c.angle), fs2 = Math.sin(c.angle);
-        this.camera.position.set(c.pos.x + fs * c.t.len * 0.12, 20.5, c.pos.z + fs2 * c.t.len * 0.12);
-        this.camera.lookAt(c.pos.x + fs * 200, 20.5, c.pos.z + fs2 * 200);
-      } else {
-        if (this.player.moveDir !== null && this.player.moveDir !== undefined) {
-          let diff = this.player.moveDir - this.camYaw;
-          while (diff > Math.PI) diff -= 2 * Math.PI;
-          while (diff < -Math.PI) diff += 2 * Math.PI;
-          this.camYaw += diff * Math.min(1, dt * 9);
-        }
-        const fx = Math.cos(this.camYaw), fz = Math.sin(this.camYaw);
-        const hy = this.player.interior ? 19 : 21;
-        this.camera.position.set(p.x + fx * 5, hy, p.z + fz * 5);
-        this.camera.lookAt(p.x + fx * 120, hy, p.z + fz * 120);
-      }
+    const yaw = Input.look.yaw, pit = Input.look.pitch;
+    this.camYaw = yaw;
+    const fx = Math.cos(yaw), fz = Math.sin(yaw);
+    if (this.camMode === 1) {
+      const hy = this.player.interior ? 19 : (this.player.car ? 20.5 : 21);
+      const c = this.player.car;
+      const hx = c ? c.pos.x + fx * c.t.len * 0.12 : p.x;
+      const hz = c ? c.pos.z + fz * c.t.len * 0.12 : p.z;
+      this.camera.position.set(hx, hy, hz);
+      this.camera.lookAt(hx + fx * 200, hy + Math.sin(pit) * 200, hz + fz * 200);
       return;
     }
-    if (this.player.car) {
-      const c = this.player.car;
-      const f = Math.hypot(c.vx, c.vz);
-      let diff = c.angle - this.camYaw;
-      if (f < 60) { diff = this.camYaw; }
-      while (diff > Math.PI) diff -= 2 * Math.PI;
-      while (diff < -Math.PI) diff += 2 * Math.PI;
-      this.camYaw += diff * Math.min(1, dt * 3.2);
-      const dist = 30 + f * 0.03;
-      this.camera.position.lerp(new THREE.Vector3(p.x - Math.cos(this.camYaw) * dist, 17 + f * 0.02, p.z - Math.sin(this.camYaw) * dist), 1 - Math.pow(0.001, dt));
-    } else {
-      if (this.player.moveDir !== null && this.player.moveDir !== undefined) {
-        let diff = this.player.moveDir - this.camYaw;
-        while (diff > Math.PI) diff -= 2 * Math.PI;
-        while (diff < -Math.PI) diff += 2 * Math.PI;
-        this.camYaw += diff * Math.min(1, dt * 4);
-      }
-      const inside = !!this.player.interior;
-      const dist = inside ? 26 : 30;
-      this.camera.position.lerp(new THREE.Vector3(p.x - Math.cos(this.camYaw) * dist, inside ? 36 : 17, p.z - Math.sin(this.camYaw) * dist), k);
-    }
-    this.camera.lookAt(p.x, this.player.interior ? 4 : 12, p.z);
+    const inside = !!this.player.interior;
+    const f = this.player.car ? Math.hypot(this.player.car.vx, this.player.car.vz) : 0;
+    const dist = (inside ? 26 : 30) + f * 0.03;
+    const base = inside ? 6 : 14;
+    const ey = base + Math.sin(-pit) * dist * 0.55;
+    this.camera.position.set(p.x - fx * dist, Math.max(3, ey), p.z - fz * dist);
+    this.camera.lookAt(p.x, (inside ? 4 : 12) + Math.sin(pit) * 60, p.z);
   },
 
   interiorLogic(dt) {
@@ -800,10 +782,10 @@ const Game = {
     City.update(this.dayT);
 
     if (this.state === 'playing' && !this.player.deadState) {
-      if (Input.isDown('Escape', 'KeyP')) { this.state = 'paused'; document.getElementById('pause').classList.remove('hidden'); if (Net.chatOpen) Net.closeChat(); Sound.setEngine(0, false); }
+      if (Input.isDown('Escape', 'KeyP')) { this.state = 'paused'; document.getElementById('pause').classList.remove('hidden'); if (Net.chatOpen) Net.closeChat(); Input.releaseLock(); Sound.setEngine(0, false); }
       if (Net.mode !== 'offline') Net.handleKeys();
       const v = Input.isDown('KeyV');
-      if (v && !this.prevV) { this.camMode = 1 - this.camMode; this.toast(this.camMode ? '👁 Vue : première personne' : '🎥 Vue : troisième personne'); }
+      if (v && !this.prevV) { this.camMode = 1 - this.camMode; Input.requestLock(); this.toast(this.camMode ? '👁 Vue : première personne — souris pour regarder' : '🎥 Vue : troisième personne — look libre'); }
       this.prevV = v;
       this.tryEnterExit();
       const client = Net.mode === 'client';
@@ -844,6 +826,7 @@ const Game = {
         this.player.group.rotation.y = -this.player.angle;
         this.player.group.visible = !this.player.car && this.camMode !== 1;
       }
+      this.updateCrosshair();
     } else if (this.state === 'playing' && this.player.deadState) {
       this.deadStateLoop(dt);
       this.particlesUpdate(dt);
@@ -853,13 +836,20 @@ const Game = {
     else this.renderer.render(this.scene, this.camera);
   },
 
+  updateCrosshair() {
+    const on = Input.locked || this.camMode === 1;
+    const el = document.getElementById('cross');
+    if (el && el.style.display !== (on ? 'block' : 'none')) el.style.display = on ? 'block' : 'none';
+  },
+
   updatePlayerWalk(dt) {
+    this.player.angle = Input.look.yaw;
     const move = Input.axis('KeyS', 'KeyW') || Input.axis('ArrowDown', 'ArrowUp');
     const strafe = Input.axis('KeyA', 'KeyD') || Input.axis('ArrowLeft', 'ArrowRight');
     const spd = 150;
     if (move !== 0 || strafe !== 0) {
-      const fx = Math.cos(this.camYaw), fz = Math.sin(this.camYaw);
-      const rx = -Math.sin(this.camYaw), rz = Math.cos(this.camYaw);
+      const fx = Math.cos(Input.look.yaw), fz = Math.sin(Input.look.yaw);
+      const rx = -Math.sin(Input.look.yaw), rz = Math.cos(Input.look.yaw);
       let dx = fx * move + rx * strafe;
       let dz = fz * move + rz * strafe;
       const len = Math.hypot(dx, dz) || 1;

@@ -486,6 +486,7 @@ const Net = {
   openChat() {
     if (this.mode === 'offline') return;
     this.chatOpen = true;
+    if (window.Input) Input.releaseLock();
     const inp = document.getElementById('chatInput');
     inp.classList.add('open');
     inp.focus();
@@ -497,6 +498,7 @@ const Net = {
     inp.value = '';
     inp.classList.remove('open');
     inp.blur();
+    if (window.Input && Game.state === 'playing') Input.requestLock();
   },
 
   sendChat() {
