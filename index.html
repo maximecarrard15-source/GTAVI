@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRAND THEFT AUTO VI — Fan Edition 3D (WebGL)</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌴</text></svg>">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="mapWrap"><canvas id="minimap" width="176" height="176"></canvas></div>
+  <div id="stats">
+    <div id="money">$500</div>
+    <div id="wanted"><span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span></div>
+    <div class="barWrap" title="Santé"><div id="healthBar" class="bar hp"></div></div>
+    <div class="barWrap" title="Armure"><div id="armorBar" class="bar ar"></div></div>
+    <div id="weapon">Pistolet ∞</div>
+    <div id="speedo">0 km/h</div>
+  </div>
+  <div id="clock"></div>
+  <div id="missionBanner"></div>
+  <div id="toast"></div>
+  <div id="objective"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="menuBox">
+    <div class="gtaLogo">
+      <span class="gtaTop">GRAND THEFT AUTO</span>
+      <span class="gtaSix">VI</span>
+      <span class="gtaSub">FAN EDITION 3D — LEONIDA (WEBGL)</span>
+    </div>
+    <button id="btnPlay" class="menuBtn">▶ JOUER</button>
+    <button id="btnHelp" class="menuBtn secondary">🎮 CONTRÔLES</button>
+    <p class="disclaimer">Projet fan hommage, non affilié à Rockstar Games.</p>
+  </div>
+</div>
+
+<div id="help" class="overlay hidden">
+  <div class="menuBox helpBox">
+    <h2>CONTRÔLES</h2>
+    <table>
+      <tr><td>W A S D / Flèches</td><td>Marcher · Conduire</td></tr>
+      <tr><td>F / Entrée</td><td>Monter / descendre d'un véhicule</td></tr>
+      <tr><td>Souris + Clic</td><td>Viser et tirer</td></tr>
+      <tr><td>Espace</td><td>Frein à main (drift)</td></tr>
+      <tr><td>H</td><td>Klaxon</td></tr>
+      <tr><td>Échap / P</td><td>Pause</td></tr>
+    </table>
+    <p>Missions : va sur les <b class="y">marqueurs jaunes</b>. Au volant d'un flic qui te cherche ? File au <b class="b">Pay'n'Spray (bleu, $300)</b> pour repeindre la caisse.</p>
+    <p>Pickups : ❤ santé · 🛡 armure · 💵 cash · 🔫 munitions SMG.</p>
+    <button id="btnBack" class="menuBtn secondary">RETOUR</button>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="menuBox">
+    <h2 class="gtaTop big">PAUSE</h2>
+    <button id="btnResume" class="menuBtn">REPRENDRE</button>
+    <button id="btnMenuBack" class="menuBtn secondary">MENU PRINCIPAL</button>
+  </div>
+</div>
+
+<div id="wasted" class="overlay hidden">
+  <h1 class="wastedTxt">WASTED</h1>
+</div>
+<div id="missionDone" class="overlay hidden"><h1 class="doneTxt">MISSION PASSED !</h1></div>
+
+<script src="js/vendor/three.min.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/world3d.js"></script>
+<script src="js/entities3d.js"></script>
+<script src="js/police.js"></script>
+<script src="js/missions.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

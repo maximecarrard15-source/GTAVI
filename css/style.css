@@ -1,0 +1,50 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #06070d; font-family: 'Segoe UI', Arial, sans-serif; }
+#game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+
+#hud { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+#mapWrap { position: absolute; left: 18px; bottom: 18px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,.55); box-shadow: 0 0 18px rgba(0,0,0,.6); }
+#minimap { display: block; }
+
+#stats { position: absolute; right: 18px; top: 14px; text-align: right; text-shadow: 1px 2px 3px #000; }
+#money { font-size: 26px; font-weight: 800; color: #7be08a; letter-spacing: 1px; }
+#wanted span { color: rgba(255,255,255,.25); font-size: 20px; margin-left: 2px; }
+#wanted span.on { color: #ffd23c; animation: pulse .8s infinite alternate; }
+@keyframes pulse { from { opacity: .65 } to { opacity: 1 } }
+.barWrap { width: 170px; height: 9px; background: rgba(0,0,0,.55); border-radius: 6px; margin: 5px 0 0 auto; overflow: hidden; }
+.bar { height: 100%; width: 100%; transition: width .15s; border-radius: 6px; }
+.bar.hp { background: linear-gradient(90deg,#37d067,#9ff05e); }
+.bar.ar { background: linear-gradient(90deg,#3fa9f5,#8fd6ff); }
+#weapon, #speedo { color: #fff; font-size: 14px; font-weight: 700; margin-top: 5px; opacity: .9; }
+
+#clock { position: absolute; right: 18px; bottom: 18px; color: #ffd9f0; font-size: 20px; font-weight: 800; text-shadow: 1px 2px 3px #000; }
+#missionBanner { position: absolute; top: 12vh; left: 50%; transform: translateX(-50%); color: #fd3f92; font-size: 34px; font-weight: 900; letter-spacing: 2px; text-shadow: 2px 3px 6px #000, 0 0 22px rgba(253,63,146,.8); opacity: 0; transition: opacity .4s; }
+#missionBanner.show { opacity: 1; }
+#objective { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); color: #ffe9a8; font-size: 16px; font-weight: 700; text-shadow: 1px 2px 3px #000; max-width: 70vw; text-align: center; }
+#toast { position: absolute; bottom: 12vh; left: 50%; transform: translateX(-50%); color: #fff; font-size: 16px; font-weight: 700; background: rgba(0,0,0,.6); padding: 8px 18px; border-radius: 20px; opacity: 0; transition: opacity .3s; }
+#toast.show { opacity: 1; }
+
+.overlay { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(20,4,40,.85), rgba(4,2,10,.96)); }
+.overlay.hidden { display: none; }
+.menuBox { text-align: center; color: #fff; }
+.menuBox h2 { font-size: 26px; margin-bottom: 14px; }
+.menuBox table { margin: 0 auto 18px; border-collapse: collapse; font-size: 15px; }
+.menuBox td { padding: 5px 14px; border-bottom: 1px solid rgba(255,255,255,.12); }
+.menuBox td:first-child { font-weight: 800; color: #ffd23c; text-align: right; }
+.menuBox p { font-size: 14px; color: #d8d2ec; margin: 8px 0; }
+.menuBox .y { color: #ffd23c; } .menuBox .b { color: #5cc8ff; }
+.gtaLogo { display: flex; flex-direction: column; align-items: center; margin-bottom: 34px; }
+.gtaTop { font-size: 34px; font-weight: 900; letter-spacing: 6px; color: #fff; text-shadow: 2px 3px 8px #000; }
+.gtaTop.big { font-size: 42px; margin-bottom: 20px; }
+.gtaSix { font-size: 130px; font-weight: 900; line-height: .9; letter-spacing: 8px; background: linear-gradient(180deg, #ffd75e 0%, #ff7ab8 45%, #b048ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 26px rgba(255,90,200,.55)); }
+.gtaSub { margin-top: 10px; font-size: 14px; letter-spacing: 5px; color: #7fd7f2; }
+.menuBtn { pointer-events: auto; display: block; width: 260px; margin: 10px auto; padding: 13px 0; font-size: 19px; font-weight: 900; letter-spacing: 2px; color: #14041f; background: linear-gradient(90deg,#ffd75e,#ff7ab8); border: 0; border-radius: 40px; cursor: pointer; transition: transform .12s, filter .12s; }
+.menuBtn:hover { transform: scale(1.05); filter: brightness(1.12); }
+.menuBtn.secondary { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.35); }
+.disclaimer { margin-top: 22px; font-size: 11px; color: rgba(255,255,255,.4); }
+
+#wasted { background: rgba(20,0,0,.55); transition: opacity .6s; }
+.wastedTxt, .doneTxt { font-size: 9vw; font-weight: 900; letter-spacing: 10px; }
+.wastedTxt { color: #d21f2e; text-shadow: 0 0 40px rgba(210,31,46,.8); }
+.doneTxt { color: #ffd23c; text-shadow: 0 0 40px rgba(255,210,60,.8); }
+#missionDone { background: rgba(0,10,0,.4); }
