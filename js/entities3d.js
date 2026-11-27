@@ -5,11 +5,11 @@ function makeBlobShadow(size) {
 }
 
 const CAR_TYPES = {
-  sport: { name: 'Cheetah GTS', len: 46, wid: 19, accel: 430, maxF: 700, maxR: -200, colors: [0xff3860, 0x22d3ee, 0xffd23c, 0xffffff], hp: 100 },
-  sedan: { name: 'Regalia', len: 48, wid: 21, accel: 330, maxF: 560, maxR: -180, colors: [0x9aa4b0, 0x4a6fd4, 0xc47fe8, 0x59c98f, 0x302f38], hp: 120 },
-  taxi: { name: 'Taxi Vice', len: 48, wid: 21, accel: 330, maxF: 560, maxR: -180, colors: [0xf7c948], hp: 120 },
-  pickup: { name: 'Bobcat', len: 52, wid: 23, accel: 290, maxF: 500, maxR: -170, colors: [0x8a5a33, 0x556b2f, 0x708090], hp: 150 },
-  police: { name: 'VCPD Cruiser', len: 50, wid: 22, accel: 430, maxF: 660, maxR: -200, colors: [0xf4f4f4], hp: 160 }
+  sport: { name: 'Cheetah GTS', len: 46, wid: 19, accel: 375, maxF: 700, maxR: -200, colors: [0xff3860, 0x22d3ee, 0xffd23c, 0xffffff], hp: 100 },
+  sedan: { name: 'Regalia', len: 48, wid: 21, accel: 288, maxF: 560, maxR: -180, colors: [0x9aa4b0, 0x4a6fd4, 0xc47fe8, 0x59c98f, 0x302f38], hp: 120 },
+  taxi: { name: 'Taxi Vice', len: 48, wid: 21, accel: 288, maxF: 560, maxR: -180, colors: [0xf7c948], hp: 120 },
+  pickup: { name: 'Bobcat', len: 52, wid: 23, accel: 253, maxF: 500, maxR: -170, colors: [0x8a5a33, 0x556b2f, 0x708090], hp: 150 },
+  police: { name: 'VCPD Cruiser', len: 50, wid: 22, accel: 375, maxF: 660, maxR: -200, colors: [0xf4f4f4], hp: 160 }
 };
 
 class Car {
