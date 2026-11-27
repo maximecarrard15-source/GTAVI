@@ -244,13 +244,13 @@ class Car {
       if (o === this) continue;
       const dx = o.pos.x - this.pos.x, dz = o.pos.z - this.pos.z;
       const fx = Math.cos(this.angle), fz = Math.sin(this.angle);
-      if (dx * fx + dz * fz > 0 && dx * fx + dz * fz < 95 && Math.abs(dx * -fz + dz * fx) < 18) { front = true; break; }
+      if (dx * fx + dz * fz > 0 && dx * fx + dz * fz < 150 && Math.abs(dx * -fz + dz * fx) < 24) { front = true; break; }
     }
     if (!front && Game.player.car !== this) {
       const p = Game.player.pos;
       const dx = p.x - this.pos.x, dz = p.z - this.pos.z;
       const fx = Math.cos(this.angle), fz = Math.sin(this.angle);
-      if (dx * fx + dz * fz > 0 && dx * fx + dz * fz < 80 && Math.abs(dx * -fz + dz * fx) < 16) front = true;
+      if (dx * fx + dz * fz > 0 && dx * fx + dz * fz < 130 && Math.abs(dx * -fz + dz * fx) < 22) front = true;
     }
     const target = front ? 0 : (Math.abs(diff) > 0.5 ? this.cruise * 0.4 : this.cruise);
     const f = this.forwardSpd();
@@ -460,7 +460,8 @@ class Player {
       pistol: { name: 'Pistolet', dmg: 14, rate: 0.34, ammo: Infinity, spd: 1100 },
       smg: { name: 'SMG', dmg: 8, rate: 0.09, ammo: 0, spd: 1100 },
       shotgun: { name: 'Fusil à pompe', dmg: 9, rate: 0.95, ammo: 0, spd: 1100, pellets: 5 },
-      sniper: { name: 'Sniper', dmg: 55, rate: 1.3, ammo: 0, spd: 1100 }
+      sniper: { name: 'Sniper', dmg: 55, rate: 1.3, ammo: 0, spd: 1100 },
+      minigun: { name: 'Mitrailleuse', dmg: 6, rate: 0.06, ammo: 0, spd: 1100 }
     };
     this.weapon = 'pistol';
     this.shootCd = 0;

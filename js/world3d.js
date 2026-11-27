@@ -599,25 +599,6 @@ const City = {
     }
     this.group.add(bin);
 
-    const tl = [];
-    for (let i = 0; i < WORLD.Xs.length; i += 2) for (let j = 0; j < WORLD.Ys.length; j += 2) {
-      tl.push([WORLD.Xs[i] + WORLD.ROAD / 2 + 14, WORLD.Ys[j] + WORLD.ROAD / 2 + 14, (i + j) % 4]);
-    }
-    const tlp = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.1, 1.5, 30, 6), new THREE.MeshLambertMaterial({ color: 0x33383e }), tl.length);
-    const tlh = new THREE.InstancedMesh(new THREE.BoxGeometry(5, 12, 5), new THREE.MeshLambertMaterial({ color: 0x171a1e }), tl.length);
-    const redLit = new THREE.InstancedMesh(new THREE.SphereGeometry(1.7, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2e1f }), tl.length);
-    const grnLit = new THREE.InstancedMesh(new THREE.SphereGeometry(1.7, 8, 6), new THREE.MeshBasicMaterial({ color: 0x2eff6a }), tl.length);
-    let ri = 0, gi = 0;
-    for (let i = 0; i < tl.length; i++) {
-      const [x, z, ph] = tl[i];
-      dummy.position.set(x, 15, z); dummy.updateMatrix(); tlp.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(x, 32, z); dummy.updateMatrix(); tlh.setMatrixAt(i, dummy.matrix);
-      const go = ph % 2 === 0;
-      if (go) { dummy.position.set(x, 29, z); dummy.updateMatrix(); grnLit.setMatrixAt(gi++, dummy.matrix); }
-      else { dummy.position.set(x, 35, z); dummy.updateMatrix(); redLit.setMatrixAt(ri++, dummy.matrix); }
-      Colliders.add({ x, z, r: 2 });
-    }
-    this.group.add(tlp); this.group.add(tlh); this.group.add(redLit); this.group.add(grnLit);
   },
 
   buildSky(scene) {
@@ -777,9 +758,9 @@ const City = {
       const cash = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 10), new THREE.MeshPhongMaterial({ color: 0x4cd964, shininess: 90, emissive: 0x1d5c2a }));
       cash.position.set(bx + 40, 10, bz + 30);
       this.group.add(cash);
-      const wKinds = ['shotgun', 'sniper', 'smg'];
-      const kind = wKinds[i % 3];
-      const wCols = { shotgun: 0xff7043, sniper: 0x9a5cff, smg: 0xffa726 };
+      const wKinds = ['shotgun', 'sniper', 'smg', 'minigun'];
+      const kind = wKinds[i % 4];
+      const wCols = { shotgun: 0xff7043, sniper: 0x9a5cff, smg: 0xffa726, minigun: 0xe53935 };
       const wmesh = new THREE.Mesh(new THREE.BoxGeometry(9, 6, 9), new THREE.MeshPhongMaterial({ color: wCols[kind], shininess: 90, emissive: 0x332211 }));
       wmesh.position.set(bx - 100, 8, bz + 100);
       this.group.add(wmesh);

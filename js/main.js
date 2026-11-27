@@ -81,12 +81,19 @@ const Game = {
     this.scene.add(this.interiorLight);
     for (const it of City.interiors) {
       const dm = new THREE.Mesh(
-        new THREE.BoxGeometry(30, 26, 3),
-        new THREE.MeshBasicMaterial({ color: 0xffa726, transparent: true, opacity: 0.75 })
+        new THREE.CylinderGeometry(9, 11, 46, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffa726, transparent: true, opacity: 0.55, depthWrite: false })
       );
-      dm.position.set(it.door.x, 13, it.door.z);
+      dm.position.set(it.door.x, 23, it.door.z);
       this.scene.add(dm);
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(34, 30, 4),
+        new THREE.MeshBasicMaterial({ color: 0xffd54f })
+      );
+      frame.position.set(it.door.x, 15, it.door.z);
+      this.scene.add(frame);
       it.doorMesh = dm;
+      it.doorFrame = frame;
       it._hinted = false;
     }
     Missions.buildMeshes(this.scene);
@@ -138,7 +145,7 @@ const Game = {
     Net.chatShow(true);
     if (Net.mode !== 'offline') Net.system('Tu es ' + Net.myName + (Net.mode === 'host' ? ' (hôte)' : '') + '. Appuie sur T pour chatter.');
     this.banner('BIENVENUE À LEONIDA');
-    this.toast('V pour changer de vue, F pour entrer dans les bâtiments, T pour le tchat (/time set day)');
+    this.toast('V pour changer de vue, F pour entrer dans les bâtiments (colonnes orange), T pour le tchat (/time set day)');
     setTimeout(() => this.bannerEl.classList.remove('show'), 3500);
   },
 
@@ -281,7 +288,6 @@ const Game = {
     this.sparks(pos, 14, 0xff6630);
     const R = 110;
     if (fxOnly) return;
-    for (const c of this.cars) if (!c.dead && c.pos.distanceTo(pos) < R) c.damage(120, false);
     for (const pd of this.peds) if (!pd.dead && pd.pos.distanceTo(pos) < R) pd.die(false);
     const pp = this.playerPos();
     if (!this.player.deadState && pp.distanceTo(pos) < R) {
@@ -297,7 +303,7 @@ const Game = {
     m.position.copy(fromPos); m.position.y = byCop ? 14 : 18;
     this.group.add(m);
     this.bullets.push({ m, dx: dir.x, dz: dir.z, life: 1.1, byCop, dmg: dmg || 14 });
-    if (byCop) Sound.shot(); else if (weapon === 'smg') Sound.smg(); else Sound.shot();
+    if (byCop) Sound.shot(); else if (weapon === 'smg' || weapon === 'minigun') Sound.smg(); else Sound.shot();
   },
 
   copShoot(cop, target) {
@@ -627,15 +633,16 @@ const Game = {
           a.vx -= nx * rel * 0.6; a.vz -= nz * rel * 0.6;
           b.vx += nx * rel * 0.6; b.vz += nz * rel * 0.6;
           const imp = Math.abs(rel);
-          if (imp > 140) {
-            a.damage(imp / 12, b.driver === 'player');
-            b.damage(imp / 12, a.driver === 'player');
+          const playerInvolved = a.driver === 'player' || b.driver === 'player';
+          if (imp > 140 && playerInvolved) {
+            a.damage(imp / 14, b.driver === 'player');
+            b.damage(imp / 14, a.driver === 'player');
             Sound.crash(imp / 900);
             this.sparks(a.pos.clone().lerp(b.pos, 0.5), 5);
-            if (a.driver === 'player' || b.driver === 'player') {
-              const other = a.driver === 'player' ? b : a;
-              if (other.isPolice) Police.crime(0.5);
-            }
+            const other = a.driver === 'player' ? b : a;
+            if (other.isPolice) Police.crime(0.5);
+          } else if (imp > 200) {
+            Sound.crash(imp / 1200);
           }
         }
       }
@@ -644,10 +651,15 @@ const Game = {
       for (const c of this.cars) {
         if (c.dead) continue;
         const spd = Math.hypot(c.vx, c.vz);
-        if (spd > 120 && c.pos.distanceTo(this.player.pos) < 15) {
-          this.player.damage(spd * 0.25);
-          this.sparks(this.player.pos, 4, 0xc33);
-          if (this.player.health <= 0) this.wasted();
+        if (spd > 210 && c.pos.distanceTo(this.player.pos) < 14) {
+          const fx = Math.cos(c.angle), fz = Math.sin(c.angle);
+          const ddx = this.player.pos.x - c.pos.x, ddz = this.player.pos.z - c.pos.z;
+          const dot = (ddx * fx + ddz * fz) / (Math.hypot(ddx, ddz) || 1);
+          if (dot > 0.55) {
+            this.player.damage(spd * 0.14);
+            this.sparks(this.player.pos, 4, 0xc33);
+            if (this.player.health <= 0) this.wasted();
+          }
         }
       }
     }
@@ -725,7 +737,7 @@ const Game = {
     this.camYaw = yaw;
     const fx = Math.cos(yaw), fz = Math.sin(yaw);
     if (this.camMode === 1) {
-      const hy = this.player.interior ? 19 : (this.player.car ? 20.5 : 21);
+      const hy = (this.player.interior ? 19 : (this.player.car ? 20.5 : 21)) + (this.player.jz || 0);
       const c = this.player.car;
       const hx = c ? c.pos.x + fx * c.t.len * 0.12 : p.x;
       const hz = c ? c.pos.z + fz * c.t.len * 0.12 : p.z;
@@ -737,9 +749,10 @@ const Game = {
     const f = this.player.car ? Math.hypot(this.player.car.vx, this.player.car.vz) : 0;
     const dist = (inside ? 26 : 30) + f * 0.03;
     const base = inside ? 6 : 14;
-    const ey = base + Math.sin(-pit) * dist * 0.55;
+    const jz = this.player.jz || 0;
+    const ey = base + Math.sin(-pit) * dist * 0.55 + jz * 0.85;
     this.camera.position.set(p.x - fx * dist, Math.max(3, ey), p.z - fz * dist);
-    this.camera.lookAt(p.x, (inside ? 4 : 12) + Math.sin(pit) * 60, p.z);
+    this.camera.lookAt(p.x, (inside ? 4 : 12) + Math.sin(pit) * 60 + jz, p.z);
   },
 
   interiorLogic(dt) {
@@ -749,6 +762,7 @@ const Game = {
         it.cash.mesh.rotation.y += dt * 1.5;
         it.cash.mesh.position.y = 10 + Math.sin(this.dayT * 3) * 1.5;
       }
+      if (it.doorMesh) it.doorMesh.material.opacity = 0.4 + Math.abs(Math.sin(this.dayT * 2)) * 0.35;
       if (it.wpn && it.wpn.mesh) {
         it.wpn.mesh.rotation.y += dt * 1.5;
         it.wpn.mesh.position.y = 8 + Math.sin(this.dayT * 3 + 2) * 1.5;
@@ -775,7 +789,7 @@ const Game = {
         if (it.wpn.cd <= 0 && Math.hypot(p.x - it.wpn.x, p.z - it.wpn.z) < 24) {
           const wk = this.player.weapons[it.wpn.kind];
           if (wk) {
-            const amt = it.wpn.kind === 'sniper' ? 8 : it.wpn.kind === 'shotgun' ? 20 : 90;
+            const amt = it.wpn.kind === 'sniper' ? 8 : it.wpn.kind === 'shotgun' ? 20 : it.wpn.kind === 'minigun' ? 250 : 90;
             wk.ammo += amt;
             this.player.weapon = it.wpn.kind;
             it.wpn.cd = 60;
@@ -818,6 +832,7 @@ const Game = {
     };
     if (Missions.state === 'idle') blip(Missions.startMarker.position.x, Missions.startMarker.position.z, '#ffd23c');
     else if (Missions.marker.visible) blip(Missions.marker.position.x, Missions.marker.position.z, '#ffd23c');
+    for (const it2 of City.interiors) blip(it2.door.x, it2.door.z, '#ffa726', 3);
     for (const c of this.cars) if (c.isPolice && !c.dead) blip(c.pos.x, c.pos.z, Math.floor(this.dayT * 2) % 2 ? '#ff4444' : '#4467ff');
     for (const f of (Police.foots || [])) if (!f.dead) blip(f.pos.x, f.pos.z, '#ff4444', 2.6);
     for (const [, rp] of Net.remotes) blip(rp.pos.x, rp.pos.z, '#ff9de2');
@@ -846,7 +861,7 @@ const Game = {
       const v = Input.isDown('KeyV');
       if (v && !this.prevV) { this.camMode = 1 - this.camMode; Input.requestLock(); this.toast(this.camMode ? '👁 Vue : première personne — souris pour regarder' : '🎥 Vue : troisième personne — look libre'); }
       this.prevV = v;
-      const wk = { Digit1: 'pistol', Digit2: 'smg', Digit3: 'shotgun', Digit4: 'sniper' };
+      const wk = { Digit1: 'pistol', Digit2: 'smg', Digit3: 'shotgun', Digit4: 'sniper', Digit5: 'minigun' };
       for (const k in wk) {
         if (Input.isDown(k)) {
           const w2 = this.player.weapons[wk[k]];
@@ -914,6 +929,11 @@ const Game = {
 
   updatePlayerWalk(dt) {
     this.player.angle = Input.look.yaw;
+    const jump = Input.isDown('Space');
+    if (jump && !this.prevSpace && (this.player.jz || 0) <= 0) this.player.jv = 250;
+    this.prevSpace = jump;
+    this.player.jz = Math.max(0, (this.player.jz || 0) + (this.player.jv || 0) * dt);
+    this.player.jv = this.player.jz > 0 ? (this.player.jv || 0) - 720 * dt : 0;
     const move = Input.axis('KeyS', 'KeyW') || Input.axis('ArrowDown', 'ArrowUp');
     const strafe = Input.axis('KeyA', 'KeyD') || Input.axis('ArrowLeft', 'ArrowRight');
     const spd = 150;
@@ -943,7 +963,7 @@ const Game = {
     }
     if (!this.player.interior) City.clampToLand(this.player.pos, 8);
     City.collide(this.player.pos, 8);
-    this.player.group.position.copy(this.player.pos);
+    this.player.group.position.set(this.player.pos.x, this.player.jz || 0, this.player.pos.z);
   }
 };
 

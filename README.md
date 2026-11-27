@@ -22,7 +22,8 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 | `V` | Vue 1re / 3e personne |
 | `Espace` | Frein à main (drift) |
 | `H` | Klaxon |
-| `1` / `2` / `3` / `4` | Pistolet / SMG / Fusil à pompe / Sniper |
+| `1` / `2` / `3` / `4` / `5` | Pistolet / SMG / Fusil à pompe / Sniper / Mitrailleuse |
+| `Espace` (à pied) | Sauter |
 | `Échap` / `P` | Pause |
 
 ## 🚗 Contenu
@@ -51,9 +52,16 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 - **Police VCPD** : 5 étoiles de recherche, poursuites, gyrophare + sirène,
   tirs d'agents, **policiers à pied armés** dès 2 étoiles (ils te courent dessus
   et tirent, et peuvent aussi te placer une arrestation), BUSTED et WASTED.
-- **Arsenal** : Pistolet, SMG, Fusil à pompe, Sniper — touches `1`/`2`/`3`/`4`
-  pour changer d'arme ; caisses d'armes dissimulées dans les bâtiments visitables
-  (chaque intérieur contient un type d'arme, réapprovisionnable après cooldown).
+- **Arsenal** : Pistolet, SMG, Fusil à pompe, Sniper, Mitrailleuse — touches
+  `1`/`2`/`3`/`4`/`5` pour changer d'arme ; caisses d'armes dissimulées dans les
+  bâtiments visitables (chaque intérieur contient un type d'arme, réapprovisionnable
+  après cooldown).
+- **Saut** : `Espace` à pied pour sauter.
+- **Entrées de bâtiments** balisées : colonne de lumière orange pulsante + cadre
+  doré + blip orange sur la minimap.
+- **Trafic pacifié** : les IA ralentissent bien avant le véhicule devant elles et
+  ne s'entre-détruisent plus (ni collisions, ni explosions en chaîne) ; les poteaux
+  de feux tricolores ont été retirés des carrefours.
 - **4 missions** : Livraison Express, Vice Rush (course à checkpoints),
   Chasseur de primes, Contrebande.
 - **Pay'n'Spray** ($300) pour effacer le wanted, hôpital pour respawn.
