@@ -1,10 +1,13 @@
 const Police = {
-  list: [], wanted: 0, heat: 0, sight: 0, blinkT: 0, bustT: 0,
+  list: [], foots: [], wanted: 0, heat: 0, sight: 0, blinkT: 0, bustT: 0,
   STARS: [0, 4, 12, 22, 34],
 
   reset() {
     for (const c of this.list) Game.removeCar(c);
-    this.list = []; this.wanted = 0; this.heat = 0; this.sight = 0; this.bustT = 0;
+    this.list = [];
+    for (const f of this.foots) Game.group.remove(f.group);
+    this.foots = [];
+    this.wanted = 0; this.heat = 0; this.sight = 0; this.bustT = 0;
     Game.dirtyHUD = true;
   },
 
@@ -54,6 +57,26 @@ const Police = {
         Game.addCar(cop); this.list.push(cop);
       }
     }
+    const wantFoot = Game.player.deadState ? 0 : (this.wanted >= 2 ? this.wanted - 1 : 0);
+    const aliveFoot = this.foots.filter(f => !f.dead).length;
+    if (aliveFoot < wantFoot) {
+      const spot = this.randomRoadSpot(900);
+      if (spot) {
+        const fc = new FootCop(spot.x, spot.z);
+        Game.group.add(fc.group);
+        this.foots.push(fc);
+      }
+    }
+    for (const f of this.foots) f.update(dt);
+    for (let i = this.foots.length - 1; i >= 0; i--) {
+      const f = this.foots[i];
+      if (!f.dead && this.wanted >= 2 && f.shootCd <= 0 && f.pos.distanceTo(p) < 280) {
+        f.shootCd = Math.max(1.1, 1.9 - this.wanted * 0.15);
+        Game.copShoot(f, p);
+      }
+      if (f.dead && f.deadT > 6) { Game.group.remove(f.group); this.foots.splice(i, 1); continue; }
+      if (this.wanted === 0 && f.pos.distanceTo(p) > 600) { Game.group.remove(f.group); this.foots.splice(i, 1); continue; }
+    }
     for (let i = this.list.length - 1; i >= 0; i--) {
       const c = this.list[i];
       if (c.dead) { this.list.splice(i, 1); continue; }
@@ -81,6 +104,7 @@ const Police = {
     if (!Game.player.car && !Game.player.deadState && this.wanted >= 1) {
       let onFootThreat = false;
       for (const c of this.list) if (!c.dead && c.pos.distanceTo(p) < 42 && Math.abs(c.forwardSpd()) < 60) onFootThreat = true;
+      for (const f of this.foots) if (!f.dead && f.pos.distanceTo(p) < 34) onFootThreat = true;
       if (onFootThreat) {
         this.bustT += dt;
         if (this.bustT > 1.6) Game.busted();

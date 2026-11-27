@@ -371,12 +371,97 @@ class Ped {
   }
 }
 
+class FootCop {
+  constructor(x, z) {
+    this.pos = new THREE.Vector3(x, 0, z);
+    this.group = new THREE.Group();
+    const navy = new THREE.MeshLambertMaterial({ color: 0x22355e });
+    const navyDark = new THREE.MeshLambertMaterial({ color: 0x1a2740 });
+    const pelvis = new THREE.Mesh(new THREE.BoxGeometry(6.6, 4.5, 4.6), navyDark);
+    pelvis.position.y = 8.2; this.group.add(pelvis);
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(8, 10.5, 5), navy);
+    torso.position.y = 15.5; this.group.add(torso);
+    const badge = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 0.8), new THREE.MeshLambertMaterial({ color: 0xffd23c }));
+    badge.position.set(-2, 17.5, 2.7); this.group.add(badge);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(3.3, 10, 8), new THREE.MeshLambertMaterial({ color: 0xe8b48a }));
+    head.position.y = 23.2; this.head = head; this.group.add(head);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.9, 1.8, 10), navy);
+    cap.position.y = 25.6; this.group.add(cap);
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.8, 2.6), navyDark);
+    visor.position.set(0, 24.8, 3.6); this.group.add(visor);
+    this.arms = [];
+    const armGeo = new THREE.BoxGeometry(2.6, 9, 2.6);
+    armGeo.translate(0, -3.8, 0);
+    for (const ax of [-5.3, 5.3]) {
+      const arm = new THREE.Mesh(armGeo, navy);
+      arm.position.set(ax, 20, 0); this.arms.push(arm); this.group.add(arm);
+    }
+    const gun = new THREE.Mesh(new THREE.BoxGeometry(6.5, 3, 2), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    gun.position.set(5.3, 14.5, 3.5); this.gun = gun; this.group.add(gun);
+    this.legs = [];
+    const legGeo = new THREE.BoxGeometry(3, 8.5, 3.4);
+    legGeo.translate(0, -4.2, 0);
+    for (const lx of [-2, 2]) {
+      const leg = new THREE.Mesh(legGeo, navyDark);
+      leg.position.set(lx, 8.4, 0); this.legs.push(leg); this.group.add(leg);
+    }
+    this.group.add(makeBlobShadow(6));
+    this.angle = Math.random() * Math.PI * 2;
+    this.hp = 30; this.dead = false; this.deadT = 0;
+    this.shootCd = 1 + Math.random();
+    this.walkT = Math.random() * 10;
+    this.group.position.copy(this.pos);
+  }
+
+  update(dt) {
+    if (this.dead) {
+      this.deadT += dt;
+      this.group.rotation.z = Math.min(Math.PI / 2, this.deadT * 7);
+      return;
+    }
+    const p = Game.playerPos();
+    const d = Math.hypot(p.x - this.pos.x, p.z - this.pos.z);
+    let spd = 0;
+    if (!Game.player.interior) {
+      if (d > 60) spd = 165;
+      else if (d > 26) spd = 70;
+    }
+    if (spd > 0) {
+      const dir = Math.atan2(p.z - this.pos.z, p.x - this.pos.x);
+      this.angle = dir;
+      this.pos.x += Math.cos(dir) * spd * dt;
+      this.pos.z += Math.sin(dir) * spd * dt;
+      City.collide(this.pos, 6);
+      this.walkT += dt * spd * 0.12;
+    }
+    this.group.position.copy(this.pos);
+    this.group.rotation.y = -this.angle;
+    const sw = Math.sin(this.walkT);
+    this.legs[0].rotation.x = -sw * 0.75;
+    this.legs[1].rotation.x = sw * 0.75;
+    this.arms[0].rotation.x = sw * 0.5;
+    this.arms[1].rotation.x = -sw * 0.5;
+    this.shootCd -= dt;
+  }
+
+  die(byPlayer) {
+    if (this.dead) return;
+    this.dead = true;
+    if (byPlayer) Police.crime(1.5);
+  }
+}
+
 class Player {
   constructor() {
     this.pos = new THREE.Vector3(150, 0, 260);
     this.angle = 0; this.health = 100; this.armor = 0; this.money = 500;
     this.car = null; this.speed = 0;
-    this.weapons = { pistol: { name: 'Pistolet', dmg: 14, rate: 0.34, ammo: Infinity, spd: 1100 }, smg: { name: 'SMG', dmg: 8, rate: 0.09, ammo: 0, spd: 1100 } };
+    this.weapons = {
+      pistol: { name: 'Pistolet', dmg: 14, rate: 0.34, ammo: Infinity, spd: 1100 },
+      smg: { name: 'SMG', dmg: 8, rate: 0.09, ammo: 0, spd: 1100 },
+      shotgun: { name: 'Fusil à pompe', dmg: 9, rate: 0.95, ammo: 0, spd: 1100, pellets: 5 },
+      sniper: { name: 'Sniper', dmg: 55, rate: 1.3, ammo: 0, spd: 1100 }
+    };
     this.weapon = 'pistol';
     this.shootCd = 0;
     this.group = new THREE.Group();

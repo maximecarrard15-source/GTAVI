@@ -22,6 +22,7 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 | `V` | Vue 1re / 3e personne |
 | `Espace` | Frein à main (drift) |
 | `H` | Klaxon |
+| `1` / `2` / `3` / `4` | Pistolet / SMG / Fusil à pompe / Sniper |
 | `Échap` / `P` | Pause |
 
 ## 🚗 Contenu
@@ -48,7 +49,11 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   caisse d'argent à récolter — et une planque parfaite pour semer la police.
 - **Mort** : le personnage s'effondre à plat au sol (animé) avant l'écran WASTED.
 - **Police VCPD** : 5 étoiles de recherche, poursuites, gyrophare + sirène,
-  tirs d'agents, arrestation (BUSTED) et mort (WASTED).
+  tirs d'agents, **policiers à pied armés** dès 2 étoiles (ils te courent dessus
+  et tirent, et peuvent aussi te placer une arrestation), BUSTED et WASTED.
+- **Arsenal** : Pistolet, SMG, Fusil à pompe, Sniper — touches `1`/`2`/`3`/`4`
+  pour changer d'arme ; caisses d'armes dissimulées dans les bâtiments visitables
+  (chaque intérieur contient un type d'arme, réapprovisionnable après cooldown).
 - **4 missions** : Livraison Express, Vice Rush (course à checkpoints),
   Chasseur de primes, Contrebande.
 - **Pay'n'Spray** ($300) pour effacer le wanted, hôpital pour respawn.

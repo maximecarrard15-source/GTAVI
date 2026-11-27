@@ -57,7 +57,7 @@ function makeNameSprite(name) {
 
 const Net = {
   mode: 'offline', peer: null, conns: [], remotes: new Map(), ghosts: new Map(),
-  pedGhosts: [], pickupGhosts: new Map(),
+  pedGhosts: [], footGhosts: [], pickupGhosts: new Map(),
   nid: 1000, myName: 'Joueur' + Math.floor(100 + Math.random() * 900),
   roomCode: '', chatOpen: false, myCarNid: null, sendAcc: 0, tickAcc: 0,
 
@@ -283,6 +283,29 @@ const Net = {
       for (const [key, mesh] of [...this.pickupGhosts]) {
         if (!pkSeen.has(key)) { Game.group.remove(mesh); this.pickupGhosts.delete(key); }
       }
+      const fcList = d.fc || [];
+      while (this.footGhosts.length < fcList.length) {
+        const g = new THREE.Group();
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(8, 10.5, 5), new THREE.MeshLambertMaterial({ color: 0x22355e }));
+        torso.position.y = 15.5;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(3.3, 8, 6), new THREE.MeshLambertMaterial({ color: 0xe8b48a }));
+        head.position.y = 23.2;
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.9, 1.8, 10), new THREE.MeshLambertMaterial({ color: 0x22355e }));
+        cap.position.y = 25.6;
+        g.add(torso, head, cap, makeBlobShadow(6));
+        Game.group.add(g);
+        this.footGhosts.push({ g, tPos: new THREE.Vector3(), fresh: true });
+      }
+      while (this.footGhosts.length > fcList.length) {
+        const fg = this.footGhosts.pop();
+        Game.group.remove(fg.g);
+      }
+      fcList.forEach((fe, i) => {
+        const fg = this.footGhosts[i];
+        if (fg.fresh) { fg.g.position.set(fe.x, 0, fe.z); fg.fresh = false; }
+        fg.tPos.set(fe.x, 0, fe.z);
+        fg.g.rotation.y = -fe.a;
+      });
     } else if (d.t === 'peds') {
       while (this.pedGhosts.length < d.l.length) {
         const g = new THREE.Group();
@@ -370,7 +393,8 @@ const Net = {
       d: +Game.dayT.toFixed(2),
       sm: Missions.startMarker.visible ? this.packM(Missions.startMarker) : null,
       mk: Missions.marker.visible ? this.packM(Missions.marker) : null,
-      sp: this.packM(Game.sprayMarker), hp2: this.packM(Game.hospitalMarker)
+      sp: this.packM(Game.sprayMarker), hp2: this.packM(Game.hospitalMarker),
+      fc: (Police.foots || []).filter(f => !f.dead).slice(0, 8).map(f => ({ x: +f.pos.x.toFixed(1), z: +f.pos.z.toFixed(1), a: +f.angle.toFixed(2) }))
     };
     this.broadcast(base);
     for (const conn of this.conns) {
@@ -434,6 +458,9 @@ const Net = {
     }
     for (const pg of this.pedGhosts) {
       pg.g.position.lerp(pg.tPos, Math.min(1, dt * 10));
+    }
+    for (const fg of this.footGhosts) {
+      fg.g.position.lerp(fg.tPos, Math.min(1, dt * 10));
     }
     let i = 0;
     for (const [, mesh] of this.pickupGhosts) mesh.position.y = 7 + Math.sin(performance.now() / 300 + i++) * 2;

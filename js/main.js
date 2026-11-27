@@ -326,6 +326,7 @@ const Game = {
           if (Math.hypot(c.pos.x - nx, c.pos.z - nz) < 26) { c.damage(b.dmg * 0.8, true); this.sparks(new THREE.Vector3(nx, 0, nz), 3); hit = true; break; }
         }
         if (!hit) for (const pd of this.peds) if (!pd.dead && Math.hypot(pd.pos.x - nx, pd.pos.z - nz) < 7) { pd.die(true); pd.scare(nx, nz); this.sparks(new THREE.Vector3(nx, 0, nz), 4, 0xc33); hit = true; Police.crime(1.2); break; }
+        if (!hit) for (const f of (Police.foots || [])) if (!f.dead && Math.hypot(f.pos.x - nx, f.pos.z - nz) < 8) { f.die(true); this.sparks(new THREE.Vector3(nx, 0, nz), 4, 0xc33); hit = true; break; }
         if (!hit && Missions.targetPed && Missions.targetPed.pos.distanceTo(new THREE.Vector3(nx, 0, nz)) < 8) { Missions.targetPed.scare(nx, nz); this.sparks(new THREE.Vector3(nx, 0, nz), 3, 0xc33); }
       }
       if (!hit && b.byCop) {
@@ -450,7 +451,16 @@ const Game = {
       Net.sendShot(from, ray, w.dmg);
       return;
     }
-    this.shoot(from.add(ray.clone().normalize().multiplyScalar(16)), ray, false, w.dmg, this.player.weapon);
+    const pellets = w.pellets || 1;
+    for (let pi = 0; pi < pellets; pi++) {
+      let pr = ray;
+      if (pi > 0) {
+        const sp = (Math.random() - 0.5) * 0.32;
+        const c2 = Math.cos(sp), s2 = Math.sin(sp);
+        pr = new THREE.Vector3(ray.x * c2 - ray.z * s2, 0, ray.x * s2 + ray.z * c2);
+      }
+      this.shoot(from.clone().add(pr.clone().normalize().multiplyScalar(16)), pr, false, w.dmg, this.player.weapon);
+    }
     Police.crime(0.15);
     for (const pd of this.peds) pd.scare(this.playerPos().x, this.playerPos().z);
   },
@@ -739,6 +749,10 @@ const Game = {
         it.cash.mesh.rotation.y += dt * 1.5;
         it.cash.mesh.position.y = 10 + Math.sin(this.dayT * 3) * 1.5;
       }
+      if (it.wpn && it.wpn.mesh) {
+        it.wpn.mesh.rotation.y += dt * 1.5;
+        it.wpn.mesh.position.y = 8 + Math.sin(this.dayT * 3 + 2) * 1.5;
+      }
       it.cash.cd -= dt;
     }
     if (Net.chatOpen) return;
@@ -755,6 +769,21 @@ const Game = {
         Sound.cash();
         this.toast('+ $' + v);
         this.dirtyHUD = true;
+      }
+      if (it.wpn) {
+        it.wpn.cd -= dt;
+        if (it.wpn.cd <= 0 && Math.hypot(p.x - it.wpn.x, p.z - it.wpn.z) < 24) {
+          const wk = this.player.weapons[it.wpn.kind];
+          if (wk) {
+            const amt = it.wpn.kind === 'sniper' ? 8 : it.wpn.kind === 'shotgun' ? 20 : 90;
+            wk.ammo += amt;
+            this.player.weapon = it.wpn.kind;
+            it.wpn.cd = 60;
+            Sound.ding();
+            this.toast('\ud83d\udd2b ' + wk.name + ' +' + amt + ' munitions');
+            this.dirtyHUD = true;
+          }
+        }
       }
     } else {
       const door = this.nearestDoor();
@@ -790,6 +819,7 @@ const Game = {
     if (Missions.state === 'idle') blip(Missions.startMarker.position.x, Missions.startMarker.position.z, '#ffd23c');
     else if (Missions.marker.visible) blip(Missions.marker.position.x, Missions.marker.position.z, '#ffd23c');
     for (const c of this.cars) if (c.isPolice && !c.dead) blip(c.pos.x, c.pos.z, Math.floor(this.dayT * 2) % 2 ? '#ff4444' : '#4467ff');
+    for (const f of (Police.foots || [])) if (!f.dead) blip(f.pos.x, f.pos.z, '#ff4444', 2.6);
     for (const [, rp] of Net.remotes) blip(rp.pos.x, rp.pos.z, '#ff9de2');
     blip(City.spray.x, City.spray.z, '#39c0ff');
     blip(City.hospital.x, City.hospital.z, '#ffffff');
@@ -816,6 +846,17 @@ const Game = {
       const v = Input.isDown('KeyV');
       if (v && !this.prevV) { this.camMode = 1 - this.camMode; Input.requestLock(); this.toast(this.camMode ? '👁 Vue : première personne — souris pour regarder' : '🎥 Vue : troisième personne — look libre'); }
       this.prevV = v;
+      const wk = { Digit1: 'pistol', Digit2: 'smg', Digit3: 'shotgun', Digit4: 'sniper' };
+      for (const k in wk) {
+        if (Input.isDown(k)) {
+          const w2 = this.player.weapons[wk[k]];
+          if (w2 && (w2.ammo === Infinity || w2.ammo > 0) && this.player.weapon !== wk[k]) {
+            this.player.weapon = wk[k];
+            this.toast(w2.name);
+            this.dirtyHUD = true;
+          }
+        }
+      }
       this.tryEnterExit();
       const client = Net.mode === 'client';
       if (!client) {

@@ -777,6 +777,12 @@ const City = {
       const cash = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 10), new THREE.MeshPhongMaterial({ color: 0x4cd964, shininess: 90, emissive: 0x1d5c2a }));
       cash.position.set(bx + 40, 10, bz + 30);
       this.group.add(cash);
+      const wKinds = ['shotgun', 'sniper', 'smg'];
+      const kind = wKinds[i % 3];
+      const wCols = { shotgun: 0xff7043, sniper: 0x9a5cff, smg: 0xffa726 };
+      const wmesh = new THREE.Mesh(new THREE.BoxGeometry(9, 6, 9), new THREE.MeshPhongMaterial({ color: wCols[kind], shininess: 90, emissive: 0x332211 }));
+      wmesh.position.set(bx - 100, 8, bz + 100);
+      this.group.add(wmesh);
       const exitM = new THREE.Mesh(
         new THREE.CylinderGeometry(14, 14, 44, 10),
         new THREE.MeshBasicMaterial({ color: 0xff4fb0, transparent: true, opacity: 0.4, depthWrite: false })
@@ -787,7 +793,8 @@ const City = {
         name: c.name, door: c.door,
         room: { x: bx, z: bz }, enter: { x: bx + 100, z: bz + 100 },
         exit: { x: bx + 100, z: bz + 100 }, exitMesh: exitM,
-        cash: { x: bx + 40, z: bz + 30, mesh: cash, cd: 0 }
+        cash: { x: bx + 40, z: bz + 30, mesh: cash, cd: 0 },
+        wpn: { kind, x: bx - 100, z: bz + 100, mesh: wmesh, cd: 0 }
       });
     });
   },
