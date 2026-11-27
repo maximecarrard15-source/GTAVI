@@ -484,7 +484,6 @@ const Net = {
   },
 
   openChat() {
-    if (this.mode === 'offline') return;
     this.chatOpen = true;
     if (window.Input) Input.releaseLock();
     const inp = document.getElementById('chatInput');
@@ -501,11 +500,38 @@ const Net = {
     if (window.Input && Game.state === 'playing') Input.requestLock();
   },
 
+  handleCommand(txt) {
+    if (txt[0] !== '/') return false;
+    const parts = txt.slice(1).split(/\s+/).filter(Boolean);
+    if (parts[0] === 'time' && parts[1] === 'set') {
+      const arg = (parts[2] || '').toLowerCase();
+      const base = Math.floor(Game.dayT / 300) * 300;
+      if (arg === 'day') { Game.dayT = base + 75; this.system('☀ Il fait jour.'); return true; }
+      if (arg === 'night') { Game.dayT = base + 225; this.system('🌙 Il fait nuit.'); return true; }
+      const h = parseFloat(arg.replace(',', '.'));
+      if (arg !== '' && !isNaN(h) && h >= 0 && h < 24) {
+        Game.dayT = base + (h / 24) * 300;
+        this.system('🕐 Il est ' + (h % 1 ? h.toFixed(1) : h) + 'h.');
+        return true;
+      }
+      this.system('Usage : /time set day | night | <0-24>');
+      return true;
+    }
+    if (parts[0] === 'help') {
+      this.system('Commandes : /time set day|night|<0-24>');
+      return true;
+    }
+    this.system('Commande inconnue : /' + parts[0] + ' — essaie /help');
+    return true;
+  },
+
   sendChat() {
     const inp = document.getElementById('chatInput');
     const txt = inp.value.trim().slice(0, 120);
     this.closeChat();
     if (!txt) return;
+    if (txt[0] === '/') { this.handleCommand(txt); return; }
+    if (this.mode === 'offline') { this.chatLog(this.myName, txt); return; }
     if (this.mode === 'host') {
       this.chatLog(this.myName, txt);
       this.broadcast({ t: 'ev', k: 'chat', n: this.myName, m: txt });

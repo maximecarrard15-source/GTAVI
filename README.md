@@ -53,6 +53,8 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   Chasseur de primes, Contrebande.
 - **Pay'n'Spray** ($300) pour effacer le wanted, hôpital pour respawn.
 - **Pickups** : santé, armure, cash, munitions SMG.
+- **Tchat + commandes** : `T` ouvre le tchat (solo et multi) — `/time set day`,
+  `/time set night` ou `/time set 14` pour régler l'heure.
 - **Cycle jour/nuit** complet (phares, fenêtres, éclairage ambiant).
 - **Minimap** avec blips (missions, police, hôpital, spray, pickups).
 - **Sons procéduraux** : moteur dépendant de la vitesse, klaxon, sirène,

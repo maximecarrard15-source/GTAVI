@@ -126,7 +126,7 @@ const Game = {
       this.fxOn = !this.fxOn;
       document.getElementById('btnFx').textContent = 'EFFETS VISUELS : ' + (this.fxOn ? 'ACTIVÉS' : 'DÉSACTIVÉS');
     };
-    document.getElementById('btnMenuBack').onclick = () => { show('pause', false); show('menu', true); this.state = 'menu'; };
+    document.getElementById('btnMenuBack').onclick = () => { show('pause', false); show('menu', true); this.state = 'menu'; Net.chatShow(false); };
   },
 
   launch() {
@@ -135,9 +135,10 @@ const Game = {
     this._show('menu', false);
     this._show('mnet', false);
     this.state = 'playing';
+    Net.chatShow(true);
     if (Net.mode !== 'offline') Net.system('Tu es ' + Net.myName + (Net.mode === 'host' ? ' (hôte)' : '') + '. Appuie sur T pour chatter.');
     this.banner('BIENVENUE À LEONIDA');
-    this.toast('V pour changer de vue, F pour entrer dans les bâtiments');
+    this.toast('V pour changer de vue, F pour entrer dans les bâtiments, T pour le tchat (/time set day)');
     setTimeout(() => this.bannerEl.classList.remove('show'), 3500);
   },
 
@@ -811,7 +812,7 @@ const Game = {
 
     if (this.state === 'playing' && !this.player.deadState) {
       if (Input.isDown('Escape', 'KeyP')) { this.state = 'paused'; document.getElementById('pause').classList.remove('hidden'); if (Net.chatOpen) Net.closeChat(); Input.releaseLock(); Sound.setEngine(0, false); }
-      if (Net.mode !== 'offline') Net.handleKeys();
+      Net.handleKeys();
       const v = Input.isDown('KeyV');
       if (v && !this.prevV) { this.camMode = 1 - this.camMode; Input.requestLock(); this.toast(this.camMode ? '👁 Vue : première personne — souris pour regarder' : '🎥 Vue : troisième personne — look libre'); }
       this.prevV = v;
