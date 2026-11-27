@@ -4,6 +4,27 @@ function makeBlobShadow(size) {
   return m;
 }
 
+function makeLabelTexture(txt, bg, fg) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, 128, 64);
+  g.fillStyle = fg; g.font = 'bold 38px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(txt, 64, 34);
+  return new THREE.CanvasTexture(c);
+}
+
+function makeCheckerTexture() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 32;
+  const g = c.getContext('2d');
+  g.fillStyle = '#101014'; g.fillRect(0, 0, 128, 32);
+  g.fillStyle = '#f2f2f2';
+  for (let i = 0; i < 8; i++) if (i % 2 === 0) g.fillRect(i * 16, 0, 16, 16);
+  for (let i = 0; i < 8; i++) if (i % 2 === 1) g.fillRect(i * 16, 16, 16, 16);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
 const CAR_TYPES = {
   sport: { name: 'Cheetah GTS', len: 46, wid: 19, accel: 375, maxF: 700, maxR: -200, colors: [0xff3860, 0x22d3ee, 0xffd23c, 0xffffff], hp: 100 },
   sedan: { name: 'Regalia', len: 48, wid: 21, accel: 288, maxF: 560, maxR: -180, colors: [0x9aa4b0, 0x4a6fd4, 0xc47fe8, 0x59c98f, 0x302f38], hp: 120 },
@@ -26,18 +47,55 @@ class Car {
     this.group = new THREE.Group();
 
     const color = t.colors[Math.floor(Math.random() * t.colors.length)];
-    this.bodyMat = new THREE.MeshPhongMaterial({ color, shininess: 100, specular: 0x666666 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(t.len, 11, t.wid), this.bodyMat);
-    body.position.y = 9; body.castShadow = true; this.group.add(body);
+    this.bodyMat = new THREE.MeshPhongMaterial({ color, shininess: 110, specular: 0x777777 });
     const cabinMat = new THREE.MeshPhongMaterial({ color: 0x101b30, shininess: 140, specular: 0x99bbff });
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.45, 9, t.wid * 0.82), cabinMat);
-    cabin.position.set(-t.len * 0.05, 18.5, 0); cabin.castShadow = true; this.group.add(cabin);
-    const glass = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.46, 6, t.wid * 0.86), new THREE.MeshPhongMaterial({ color: 0x22364e, transparent: true, opacity: 0.5, shininess: 180, specular: 0x99ccff }));
-    glass.position.set(-t.len * 0.05, 19.5, 0); this.group.add(glass);
+    const glassMat = new THREE.MeshPhongMaterial({ color: 0x22364e, transparent: true, opacity: 0.5, shininess: 180, specular: 0x99ccff });
+    const darkMat = new THREE.MeshLambertMaterial({ color: 0x1a1d22 });
+    const chromeMat = new THREE.MeshPhongMaterial({ color: 0xd8dde3, shininess: 150, specular: 0xffffff });
+    const box = (w2, h2, d2, mat, px, py, pz) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w2, h2, d2), mat);
+      m.position.set(px, py, pz); m.castShadow = true; this.group.add(m); return m;
+    };
+
+    if (type === 'sport') {
+      box(t.len, 8.5, t.wid, this.bodyMat, 0, 7.6, 0);
+      const hood = box(t.len * 0.46, 3.2, t.wid * 0.97, this.bodyMat, t.len * 0.26, 12, 0); hood.rotation.z = 0.06;
+      const cab = box(t.len * 0.38, 7, t.wid * 0.84, this.bodyMat, -t.len * 0.15, 15.5, 0); cab.rotation.z = -0.12;
+      box(t.len * 0.32, 5, t.wid * 0.76, glassMat, -t.len * 0.14, 16.5, 0);
+      box(6, 2.2, t.wid * 0.42, darkMat, t.len * 0.12, 14, 0);
+      for (const sz of [-t.wid / 2 - 0.3, t.wid / 2 + 0.3]) box(t.len * 0.55, 1.6, 1.3, darkMat, -t.len * 0.05, 5.6, sz);
+      for (const sz of [-4.5, 4.5]) box(2.4, 4.5, 2.4, this.bodyMat, -t.len / 2 + 2.5, 15.5, sz);
+      box(4.5, 1.8, t.wid * 0.95, this.bodyMat, -t.len / 2 + 2, 18, 0);
+      for (const ez of [-t.wid * 0.2, t.wid * 0.2]) box(3.5, 2, 2, chromeMat, -t.len / 2 - 1.4, 5, ez);
+    } else if (type === 'pickup') {
+      box(t.len * 0.5, 10, t.wid, this.bodyMat, t.len * 0.23, 8.6, 0);
+      box(t.len * 0.3, 8.5, t.wid * 0.94, this.bodyMat, t.len * 0.12, 16.5, 0);
+      box(t.len * 0.26, 5.5, t.wid * 0.82, glassMat, t.len * 0.12, 18, 0);
+      box(t.len * 0.46, 2.2, t.wid * 0.9, darkMat, -t.len * 0.26, 8, 0);
+      box(t.len * 0.46, 7.5, 2.2, this.bodyMat, -t.len * 0.26, 12.4, -t.wid / 2 + 1.1);
+      box(t.len * 0.46, 7.5, 2.2, this.bodyMat, -t.len * 0.26, 12.4, t.wid / 2 - 1.1);
+      box(2.2, 7.5, t.wid * 0.9, this.bodyMat, -t.len / 2 + 1.1, 12.4, 0);
+      for (const sz of [-t.wid / 2 + 2, t.wid / 2 - 2]) {
+        const roll = box(2.2, 14, 2.2, darkMat, t.len * 0.02, 22, sz); roll.rotation.x = 0;
+      }
+      box(t.len * 0.05, 9, t.wid * 0.5, darkMat, t.len * 0.5 + 1, 8, 0);
+      for (const hz of [-t.wid * 0.28, t.wid * 0.28]) box(2.5, 2.4, 2.4, chromeMat, -t.len / 2 - 1.4, 5.2, hz);
+    } else {
+      box(t.len, 10, t.wid, this.bodyMat, 0, 9, 0);
+      box(t.len * 0.26, 8.2, t.wid * 0.92, this.bodyMat, -t.len * 0.36, 8.8, 0);
+      box(t.len * 0.18, 8.6, t.wid * 0.9, this.bodyMat, t.len * 0.4, 9.4, 0);
+      box(t.len * 0.44, 8.5, t.wid * 0.84, this.bodyMat, -t.len * 0.04, 18, 0);
+      box(t.len * 0.46, 5.5, t.wid * 0.86, glassMat, -t.len * 0.04, 19, 0);
+      for (const sz of [-t.wid / 2 - 0.2, t.wid / 2 + 0.2]) box(t.len * 0.82, 1.5, 1.1, chromeMat, 0, 7.6, sz);
+      box(t.len * 0.9, 0.8, 1, darkMat, 0, 13.2, t.wid / 2 + 0.15);
+      box(t.len * 0.9, 0.8, 1, darkMat, 0, 13.2, -t.wid / 2 - 0.15);
+    }
+
     const mirrorGeo = new THREE.BoxGeometry(1.6, 1.6, 3.4);
+    const mirY = type === 'sport' ? 15 : (type === 'pickup' ? 18 : 19.5);
     for (const mz of [-t.wid / 2 - 1.6, t.wid / 2 + 1.6]) {
       const mir = new THREE.Mesh(mirrorGeo, cabinMat);
-      mir.position.set(t.len * 0.13, 19.5, mz); this.group.add(mir);
+      mir.position.set(type === 'pickup' ? t.len * 0.22 : t.len * 0.13, mirY, mz); this.group.add(mir);
     }
     const plate = new THREE.Mesh(new THREE.BoxGeometry(1, 3.5, 7), new THREE.MeshPhongMaterial({ color: 0xe9e9e0, shininess: 40 }));
     plate.position.set(-t.len / 2 - 0.3, 6, 0); this.group.add(plate);
@@ -47,41 +105,58 @@ class Car {
       bump.position.set(bx, 5.5, 0); this.group.add(bump);
     }
     const tailMat = new THREE.MeshBasicMaterial({ color: 0xff3526 });
+    const tlY = type === 'sport' ? 9.5 : 10;
     for (const hz of [-t.wid / 2 + 4, t.wid / 2 - 4]) {
       const tl = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 4), tailMat);
-      tl.position.set(-t.len / 2 - 0.4, 10, hz); this.group.add(tl);
+      tl.position.set(-t.len / 2 - 0.4, tlY, hz); this.group.add(tl);
     }
-    if (type === 'sport') {
-      const spoiler = new THREE.Mesh(new THREE.BoxGeometry(4, 2, t.wid * 0.9), this.bodyMat);
-      spoiler.position.set(-t.len / 2 + 2, 17, 0); this.group.add(spoiler);
-    }
+
+    const sideDecal = (txt, bg, fg, px, py, w2, h2) => {
+      const tex = makeLabelTexture(txt, bg, fg);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w2, h2), new THREE.MeshBasicMaterial({ map: tex }));
+      m.position.set(px, py, t.wid / 2 + 0.35); this.group.add(m);
+      const m2 = new THREE.Mesh(new THREE.PlaneGeometry(w2, h2), new THREE.MeshBasicMaterial({ map: tex }));
+      m2.position.set(px, py, -t.wid / 2 - 0.35); m2.rotation.y = Math.PI; this.group.add(m2);
+    };
     if (type === 'taxi') {
-      const sign = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 5), new THREE.MeshBasicMaterial({ color: 0xffe066 }));
-      sign.position.set(2, 25, 0); this.group.add(sign);
+      const signBase = box(9, 1.5, 4.5, darkMat, 0, 23.4, 0);
+      const signTex = makeLabelTexture('TAXI', '#111', '#ffe066');
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(9, 4.5, 4.5), new THREE.MeshBasicMaterial({ map: signTex }));
+      sign.position.set(0, 26.4, 0); this.group.add(sign);
+      const checker = makeCheckerTexture(); checker.repeat.set(3, 1);
+      for (const sz of [-t.wid / 2 - 0.45, t.wid / 2 + 0.45]) {
+        const band = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.72, 3.2, 0.6), new THREE.MeshBasicMaterial({ map: checker }));
+        band.position.set(t.len * 0.02, 9, sz); this.group.add(band);
+      }
     }
     if (this.isPolice) {
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.25, 11.2, t.wid + 0.4), new THREE.MeshPhongMaterial({ color: 0x14213d, shininess: 80 }));
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(t.len * 0.34, 10.4, t.wid + 0.3), new THREE.MeshPhongMaterial({ color: 0x14213d, shininess: 80 }));
       stripe.position.set(0, 9, 0); this.group.add(stripe);
+      sideDecal('POLICE', '#14213d', '#ffffff', 0, 12.5, 20, 5);
       const hoodTxt = new THREE.Mesh(new THREE.BoxGeometry(1, 2.5, 12), new THREE.MeshBasicMaterial({ color: 0x14213d }));
-      hoodTxt.position.set(t.len / 2 - 6, 15, 0); this.group.add(hoodTxt);
-    }
-    if (this.isPolice) {
+      hoodTxt.position.set(t.len / 2 - 6, 14.5, 0); this.group.add(hoodTxt);
+      for (const pz of [-6, 0, 6]) box(1.6, 8, 1.6, chromeMat, t.len / 2 + 2.4, 7, pz);
+      box(1.6, 1.6, 13.6, chromeMat, t.len / 2 + 2.4, 10.5, 0);
+      box(10, 2.4, 9, darkMat, 0, 22.6, 0);
       this.bar1 = new THREE.Mesh(new THREE.BoxGeometry(4, 3.5, 3.5), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
-      this.bar1.position.set(0, 24.5, -4); this.group.add(this.bar1);
+      this.bar1.position.set(0, 25, -4); this.group.add(this.bar1);
       this.bar2 = new THREE.Mesh(new THREE.BoxGeometry(4, 3.5, 3.5), new THREE.MeshBasicMaterial({ color: 0x2244ff }));
-      this.bar2.position.set(0, 24.5, 4); this.group.add(this.bar2);
+      this.bar2.position.set(0, 25, 4); this.group.add(this.bar2);
     }
-    const wheelGeo = new THREE.CylinderGeometry(4.6, 4.6, 3.4, 14);
+
+    const wr = type === 'pickup' ? 5.3 : (type === 'sport' ? 4.1 : 4.6);
+    const wwd = type === 'pickup' ? 4.2 : 3.4;
+    const wheelGeo = new THREE.CylinderGeometry(wr, wr, wwd, 14);
     const wheelMat = new THREE.MeshPhongMaterial({ color: 0x15171b, shininess: 55 });
-    const rimGeo = new THREE.CylinderGeometry(2.4, 2.4, 3.55, 12);
-    const rimMat = new THREE.MeshPhongMaterial({ color: 0xc9ced6, shininess: 130, specular: 0xffffff });
+    const rimGeo = new THREE.CylinderGeometry(wr * 0.5, wr * 0.5, wwd + 0.15, 12);
+    const rimMat = new THREE.MeshPhongMaterial({ color: type === 'sport' ? 0xe8eef4 : 0xc9ced6, shininess: 140, specular: 0xffffff });
     this.wheels = [];
     for (const [wx, wz] of [[t.len / 2 - 9, -t.wid / 2], [t.len / 2 - 9, t.wid / 2], [-t.len / 2 + 9, -t.wid / 2], [-t.len / 2 + 9, t.wid / 2]]) {
       const w = new THREE.Mesh(wheelGeo, wheelMat);
       w.add(new THREE.Mesh(rimGeo, rimMat));
       w.rotation.z = Math.PI / 2;
-      w.position.set(wx, 4.6, wz);
-      const pivot = new THREE.Group(); pivot.add(w); pivot.position.set(wx, 4.6, wz); w.position.set(0, 0, 0);
+      w.position.set(wx, wr, wz);
+      const pivot = new THREE.Group(); pivot.add(w); pivot.position.set(wx, wr, wz); w.position.set(0, 0, 0);
       this.wheels.push(pivot);
       this.group.add(pivot);
     }
