@@ -31,7 +31,7 @@ const Input = {
     window.addEventListener('keyup', (e) => { if (window.Net && Net.chatOpen) return; this.keys[e.code] = false; });
     window.addEventListener('mousemove', (e) => {
       if (this.locked) {
-        this.look.yaw -= e.movementX * 0.0026;
+        this.look.yaw += e.movementX * 0.0026;
         this.look.pitch -= e.movementY * 0.0026;
         if (this.look.pitch > 1.45) this.look.pitch = 1.45;
         if (this.look.pitch < -1.45) this.look.pitch = -1.45;
