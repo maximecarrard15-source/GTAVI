@@ -30,8 +30,14 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   avec rez-de-chaussée commerciaux, fenêtres éclairées la nuit, antennes et feux
   clignotants sur les tours, lampadaires, parc, plage et océan animé.
 - **Rendu** : tone mapping ACES, bloom + antialiasing FXAA (désactivables en pause),
-  ciel dégradé jour/nuit avec étoiles et soleil, ombres douces, textures 256px
-  anisotropes (asphalte fissuré, trottoirs carrelés, sable, façades).
+  ciel dégradé jour/nuit avec étoiles et soleil, ombres douces.
+- **Textures refaites de A à Z** (512px, anisotropes) : asphalte fissuré avec
+  nappes d'huile et bandes d'usure, trottoirs carrelés tachés, herbe touffue,
+  sable ridé, eau avec caustiques, façades à 16 étages avec pilastres, corniches,
+  rideaux, climatiseurs, enseignes de commerces et auvents rayés.
+- **Détails urbains** : plaques d'égout, bornes incendie, poubelles, bancs dans
+  les parcs, feux tricolores, voitures garées le long des trottoirs (toutes
+  volables).
 - **5 types de véhicules** (Cheetah GTS, Regalia, Taxi Vice, Bobcat, VCPD Cruiser)
   avec physique de drift, dégâts, fumée et explosions en chaîne.
 - **Trafic et piétons** avec IA (conduite à droite, intersections, panique),
@@ -40,6 +46,7 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 - **Intérieurs visitables** : 8 lieux (Malibu Club, Café Néon, Hôtel Flamingo…) —
   portes orange sur les façades, **F pour entrer/sortir**, bar, barman, canapé,
   caisse d'argent à récolter — et une planque parfaite pour semer la police.
+- **Mort** : le personnage s'effondre à plat au sol (animé) avant l'écran WASTED.
 - **Police VCPD** : 5 étoiles de recherche, poursuites, gyrophare + sirène,
   tirs d'agents, arrestation (BUSTED) et mort (WASTED).
 - **4 missions** : Livraison Express, Vice Rush (course à checkpoints),

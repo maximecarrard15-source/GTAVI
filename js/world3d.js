@@ -33,7 +33,7 @@ const Colliders = {
   }
 };
 
-function noiseCanvas(w, h, base, dots, tuft) {
+function noiseCanvas(w, h, base, dots) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d');
   g.fillStyle = base; g.fillRect(0, 0, w, h);
@@ -42,23 +42,196 @@ function noiseCanvas(w, h, base, dots, tuft) {
     g.fillStyle = v < 0.5 ? 'rgba(0,0,0,' + (0.04 + Math.random() * 0.07) + ')' : 'rgba(255,255,255,' + (0.03 + Math.random() * 0.05) + ')';
     g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 3, 1 + Math.random() * 3);
   }
-  if (tuft) {
-    for (let i = 0; i < tuft; i++) {
-      const x = Math.random() * w, y = Math.random() * h;
-      g.strokeStyle = 'rgba(' + (40 + Math.random() * 50) + ',' + (90 + Math.random() * 80) + ',40,' + (0.25 + Math.random() * 0.3) + ')';
-      g.lineWidth = 1.4;
-      for (let b = 0; b < 3; b++) {
-        g.beginPath(); g.moveTo(x + b * 2 - 2, y); g.lineTo(x + b * 2 - 2 + (Math.random() - 0.5) * 4, y - 3 - Math.random() * 4); g.stroke();
-      }
-      g.fillStyle = 'rgba(30,60,20,0.18)';
-      for (let b = 0; b < 4; b++) g.fillRect(x + (Math.random() - 0.5) * 10, y + (Math.random() - 0.5) * 10, 2, 2);
-    }
-  }
   return c;
 }
 
+function grunge(g, w, h, n, a) {
+  for (let i = 0; i < n; i++) {
+    const dark = Math.random() < 0.55;
+    g.fillStyle = dark ? 'rgba(0,0,0,' + (0.03 + Math.random() * a) + ')' : 'rgba(255,255,255,' + (0.02 + Math.random() * a * 0.8) + ')';
+    const sz = 1 + Math.random() * 4;
+    g.fillRect(Math.random() * w, Math.random() * h, sz, sz);
+  }
+}
+
+function cracks(g, w, h, n, col, lw) {
+  g.strokeStyle = col;
+  for (let k = 0; k < n; k++) {
+    let x = Math.random() * w, y = Math.random() * h;
+    let a = Math.random() * Math.PI * 2;
+    g.lineWidth = (lw || 1) * (0.6 + Math.random());
+    g.beginPath(); g.moveTo(x, y);
+    for (let s2 = 0, m = 3 + Math.floor(Math.random() * 4); s2 < m; s2++) {
+      a += (Math.random() - 0.5) * 1.3;
+      x += Math.cos(a) * (8 + Math.random() * 22); y += Math.sin(a) * (8 + Math.random() * 22);
+      g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+}
+
+function stains(g, w, h, n, col, rmax) {
+  for (let k = 0; k < n; k++) {
+    const x = Math.random() * w, y = Math.random() * h, r = 6 + Math.random() * (rmax || 30);
+    const gr = g.createRadialGradient(x, y, 1, x, y, r);
+    gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+}
+
+function texOf(c) {
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return aniso(t);
+}
+
+function makeRoadTexture() {
+  const c = noiseCanvas(512, 512, '#262a30', 0);
+  const g = c.getContext('2d');
+  grunge(g, 512, 512, 2600, 0.08);
+  for (let i = 0; i < 1600; i++) {
+    g.fillStyle = 'rgba(158,164,175,' + (0.05 + Math.random() * 0.15) + ')';
+    const sz = 1 + Math.random() * 2;
+    g.fillRect(Math.random() * 512, Math.random() * 512, sz, sz);
+  }
+  for (const bx of [104, 200, 312, 408]) {
+    const gr = g.createLinearGradient(bx - 30, 0, bx + 30, 0);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, 'rgba(0,0,0,0.15)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(bx - 30, 0, 60, 512);
+  }
+  cracks(g, 512, 512, 12, 'rgba(10,10,12,0.5)', 1.4);
+  stains(g, 512, 512, 7, 'rgba(12,12,14,0.3)', 46);
+  for (let k = 0; k < 3; k++) {
+    const x = Math.random() * 420, y = Math.random() * 420, w2 = 30 + Math.random() * 60, h2 = 24 + Math.random() * 50;
+    g.fillStyle = 'rgba(54,58,64,' + (0.45 + Math.random() * 0.3) + ')';
+    g.fillRect(x, y, w2, h2);
+    g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = 2;
+    g.strokeRect(x, y, w2, h2);
+  }
+  return texOf(c);
+}
+
+function makeSidewalkTexture() {
+  const c = noiseCanvas(512, 512, '#9b9ea4', 0);
+  const g = c.getContext('2d');
+  const T = 64;
+  for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 8; tx++) {
+    const v = Math.random();
+    g.fillStyle = 'rgba(' + (v < 0.25 ? '70,72,76' : '255,255,255') + ',' + (0.03 + Math.random() * 0.06) + ')';
+    g.fillRect(tx * T, ty * T, T, T);
+  }
+  for (let i = 0; i <= 8; i++) {
+    g.strokeStyle = 'rgba(58,60,64,0.9)'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(i * T, 0); g.lineTo(i * T, 512); g.stroke();
+    g.beginPath(); g.moveTo(0, i * T); g.lineTo(512, i * T); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.28)'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(i * T + 2, 0); g.lineTo(i * T + 2, 512); g.stroke();
+    g.beginPath(); g.moveTo(0, i * T + 2); g.lineTo(512, i * T + 2); g.stroke();
+  }
+  for (let k = 0; k < 14; k++) {
+    const tx = Math.floor(Math.random() * 8), ty = Math.floor(Math.random() * 8);
+    g.save();
+    g.beginPath(); g.rect(tx * T + 3, ty * T + 3, T - 6, T - 6); g.clip();
+    cracks(g, T, T, 1, 'rgba(40,42,46,0.5)', 1.1);
+    g.restore();
+  }
+  for (let k = 0; k < 26; k++) {
+    g.fillStyle = 'rgba(30,30,34,' + (0.12 + Math.random() * 0.15) + ')';
+    const s2 = 2 + Math.random() * 4;
+    g.fillRect(Math.random() * 500, Math.random() * 500, s2, s2);
+  }
+  stains(g, 512, 512, 8, 'rgba(50,48,44,0.18)', 40);
+  grunge(g, 512, 512, 1400, 0.06);
+  return texOf(c);
+}
+
+function makeGrassTexture() {
+  const c = noiseCanvas(512, 512, '#3f7a44', 0);
+  const g = c.getContext('2d');
+  for (let i = 0; i < 70; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512, r = 26 + Math.random() * 80;
+    const light = Math.random() < 0.5;
+    const gr = g.createRadialGradient(x, y, 2, x, y, r);
+    gr.addColorStop(0, light ? 'rgba(120,190,90,0.16)' : 'rgba(18,52,26,0.2)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  for (let k = 0; k < 9; k++) {
+    const x = Math.random() * 512, y = Math.random() * 512;
+    g.fillStyle = 'rgba(108,84,48,0.3)';
+    for (let b = 0; b < 6; b++) { g.beginPath(); g.arc(x + (Math.random() - 0.5) * 46, y + (Math.random() - 0.5) * 34, 7 + Math.random() * 10, 0, 7); g.fill(); }
+  }
+  for (let i = 0; i < 3400; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512;
+    g.strokeStyle = 'rgba(' + Math.floor(46 + Math.random() * 60) + ',' + Math.floor(110 + Math.random() * 80) + ',' + Math.floor(38 + Math.random() * 30) + ',' + (0.25 + Math.random() * 0.45) + ')';
+    g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (Math.random() - 0.5) * 4, y - 2.5 - Math.random() * 4); g.stroke();
+  }
+  for (let i = 0; i < 36; i++) {
+    g.fillStyle = Math.random() < 0.5 ? 'rgba(240,235,120,0.75)' : 'rgba(240,240,245,0.7)';
+    g.fillRect(Math.random() * 510, Math.random() * 510, 2.4, 2.4);
+  }
+  return texOf(c);
+}
+
+function makeSandTexture() {
+  const c = noiseCanvas(512, 512, '#e6d5a4', 0);
+  const g = c.getContext('2d');
+  for (let y = 0; y < 512; y += 24) {
+    g.strokeStyle = 'rgba(255,248,215,0.3)'; g.lineWidth = 3;
+    g.beginPath();
+    for (let x = 0; x <= 512; x += 16) g.lineTo(x, y + Math.sin(x * 0.05 + y) * 5);
+    g.stroke();
+    g.strokeStyle = 'rgba(120,100,60,0.18)'; g.lineWidth = 2;
+    g.beginPath();
+    for (let x = 0; x <= 512; x += 16) g.lineTo(x, y + 9 + Math.sin(x * 0.05 + y + 1) * 5);
+    g.stroke();
+  }
+  for (let i = 0; i < 1100; i++) {
+    g.fillStyle = Math.random() < 0.5 ? 'rgba(255,250,225,0.2)' : 'rgba(130,110,70,0.15)';
+    const sz = 1 + Math.random() * 2.4;
+    g.fillRect(Math.random() * 512, Math.random() * 512, sz, sz);
+  }
+  for (let i = 0; i < 26; i++) {
+    g.fillStyle = 'rgba(245,242,235,0.85)';
+    g.beginPath(); g.arc(Math.random() * 512, Math.random() * 512, 1.6 + Math.random() * 2, 0, 7); g.fill();
+  }
+  return texOf(c);
+}
+
+function makeWaterTexture() {
+  const c = noiseCanvas(512, 512, '#1263c8', 0);
+  const g = c.getContext('2d');
+  for (let i = 0; i < 40; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512, r = 30 + Math.random() * 90;
+    const gr = g.createRadialGradient(x, y, 2, x, y, r);
+    gr.addColorStop(0, 'rgba(6,40,110,0.22)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512, r = 8 + Math.random() * 30;
+    g.strokeStyle = 'rgba(255,255,255,' + (0.06 + Math.random() * 0.15) + ')';
+    g.lineWidth = 1.4 + Math.random() * 2.4;
+    g.beginPath();
+    g.arc(x, y, r, Math.PI * (0.85 + Math.random() * 0.3), Math.PI * (1.7 + Math.random() * 0.3));
+    g.stroke();
+  }
+  for (let i = 0; i < 46; i++) {
+    const y = Math.random() * 512;
+    g.strokeStyle = 'rgba(210,240,255,' + (0.05 + Math.random() * 0.12) + ')';
+    g.lineWidth = 1.5;
+    g.beginPath();
+    for (let x = 0; x <= 512; x += 24) g.lineTo(x, y + Math.sin(x * 0.04 + i) * 6);
+    g.stroke();
+  }
+  return texOf(c);
+}
+
 function tileTexture(base, dotCount, lineColor, tile) {
-  const c = noiseCanvas(256, 256, base, dotCount, dotCount > 600 ? 160 : 0);
+  const c = noiseCanvas(256, 256, base, dotCount, 0);
   const g = c.getContext('2d');
   if (tile) {
     g.strokeStyle = lineColor; g.lineWidth = 3;
@@ -66,97 +239,121 @@ function tileTexture(base, dotCount, lineColor, tile) {
       g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke();
       g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke();
     }
-    for (let i = 0; i < dotCount / 6; i++) {
-      g.fillStyle = 'rgba(0,0,0,' + (0.05 + Math.random() * 0.25) + ')';
-      g.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 3, 2 + Math.random() * 3);
+    g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 1.2;
+    for (let i = 0; i <= 256; i += 256 / tile) {
+      g.beginPath(); g.moveTo(i + 2, 0); g.lineTo(i + 2, 256); g.stroke();
+      g.beginPath(); g.moveTo(0, i + 2); g.lineTo(256, i + 2); g.stroke();
     }
   }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return aniso(t);
-}
-
-function makeRoadTexture() {
-  const c = noiseCanvas(256, 256, '#2c3036', 1400);
-  const g = c.getContext('2d');
-  for (let b = 0; b < 5; b++) {
-    g.fillStyle = 'rgba(0,0,0,' + (0.05 + b * 0.03) + ')';
-    const bx = 55 + b * 37;
-    g.fillRect(bx - 9, 0, 18, 256);
-  }
-  g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1.4;
-  for (let k = 0; k < 12; k++) {
-    let x = Math.random() * 256, y = Math.random() * 256;
-    g.beginPath(); g.moveTo(x, y);
-    for (let s = 0; s < 4; s++) { x += (Math.random() - 0.5) * 30; y += Math.random() * 26; g.lineTo(x, y); }
-    g.stroke();
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return aniso(t);
+  grunge(g, 256, 256, 700, 0.07);
+  return texOf(c);
 }
 
 function makeWindowsTexture(base, lit) {
-  const AW = 256, AH = 512, SHOPH = 66, ROWS = 9, RH = (AH - SHOPH - 12) / ROWS, COLS = 6;
+  const AW = 512, AH = 1024, SHOPH = 128, ROWS = 16, RH = (AH - SHOPH - 26) / ROWS, COLS = 10;
   const c1 = document.createElement('canvas'); c1.width = AW; c1.height = AH;
   const g = c1.getContext('2d');
   const grad = g.createLinearGradient(0, 0, 0, AH);
-  grad.addColorStop(0, shade(base, 1.06));
-  grad.addColorStop(0.85, base);
-  grad.addColorStop(1, shade(base, 0.88));
+  grad.addColorStop(0, shade(base, 1.05));
+  grad.addColorStop(0.8, base);
+  grad.addColorStop(1, shade(base, 0.86));
   g.fillStyle = grad; g.fillRect(0, 0, AW, AH);
-  g.fillStyle = 'rgba(0,0,0,.07)';
-  for (let i = 0; i < 400; i++) g.fillRect(Math.random() * AW, Math.random() * AH, 2, 2);
   const ww = AW / COLS;
+  for (let cx = 0; cx <= COLS; cx++) {
+    const x = cx * ww;
+    g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(x - 3, 0, 6, AH - SHOPH);
+    g.fillStyle = 'rgba(255,255,255,0.13)'; g.fillRect(x + 3, 0, 2.5, AH - SHOPH);
+  }
   for (let ry = 0; ry < ROWS; ry++) {
-    if (Math.random() < 0.12) {
+    const y = 14 + ry * RH;
+    if (ry > 0 && ry % 4 === 0) {
+      g.fillStyle = shade(base, 0.78); g.fillRect(0, y - 12, AW, 12);
+      g.fillStyle = 'rgba(255,255,255,0.2)'; g.fillRect(0, y - 12, AW, 2.5);
+    }
+    if (Math.random() < 0.1) {
       g.fillStyle = 'rgba(0,0,0,.12)';
-      g.fillRect(6, 8 + ry * RH, AW - 12, RH - 8);
+      g.fillRect(8, y, AW - 16, RH * 0.72);
       continue;
     }
     for (let rx = 0; rx < COLS; rx++) {
-      const wx = rx * ww + ww * 0.16, wy = 10 + ry * RH, wh = RH * 0.58;
-      g.fillStyle = '#15203a';
-      g.fillRect(wx, wy, ww * 0.68, wh);
-      g.fillStyle = 'rgba(200,225,255,' + (0.05 + Math.random() * 0.3) + ')';
-      g.fillRect(wx + 2, wy + 2, ww * 0.25, wh - 4);
-      g.strokeStyle = 'rgba(255,255,255,.32)'; g.lineWidth = 2.5;
-      g.strokeRect(wx, wy, ww * 0.68, wh);
-      g.fillStyle = shade(base, 0.7);
-      g.fillRect(wx - ww * 0.05, wy - 4, ww * 0.78, 4);
+      const wx = rx * ww + ww * 0.14, wy = y, w2 = ww * 0.72, h2 = RH * 0.62;
+      g.fillStyle = shade(base, 0.72);
+      g.fillRect(wx - 4, wy - 4, w2 + 8, h2 + 8);
+      g.fillStyle = '#16233d';
+      g.fillRect(wx, wy, w2, h2);
+      const gl = g.createLinearGradient(wx, wy, wx, wy + h2);
+      gl.addColorStop(0, 'rgba(190,220,255,' + (0.1 + Math.random() * 0.28) + ')');
+      gl.addColorStop(1, 'rgba(60,90,140,0.12)');
+      g.fillStyle = gl;
+      g.fillRect(wx + 2, wy + 2, w2 - 4, h2 - 4);
+      if (Math.random() < 0.4) {
+        g.fillStyle = 'rgba(225,230,240,0.5)';
+        g.fillRect(wx + 3, wy + 3, w2 * (0.25 + Math.random() * 0.4), h2 - 6);
+      }
+      g.strokeStyle = 'rgba(255,255,255,.38)'; g.lineWidth = 2.5;
+      g.strokeRect(wx, wy, w2, h2);
+      g.fillStyle = shade(base, 0.66);
+      g.fillRect(wx - 5, wy + h2 + 4, w2 + 10, 5);
+      if (Math.random() < 0.16) {
+        g.fillStyle = 'rgba(120,126,134,0.9)';
+        g.fillRect(wx + w2 * 0.3, wy + h2 + 9, 22, 13);
+        g.fillStyle = 'rgba(70,74,80,0.9)';
+        g.fillRect(wx + w2 * 0.3 + 4, wy + h2 + 12, 14, 7);
+      }
     }
   }
-  g.fillStyle = shade(base, 0.6); g.fillRect(0, AH - SHOPH, AW, SHOPH);
+  const sy = AH - SHOPH;
+  g.fillStyle = shade(base, 0.58); g.fillRect(0, sy, AW, SHOPH);
+  g.fillStyle = 'rgba(255,255,255,0.15)'; g.fillRect(0, sy, AW, 3);
   const cols = ['#c94f6d', '#3f7fc4', '#d98e3b', '#5aa86c', '#8a63c9', '#d3c052'];
+  const words = ['CAF\u00c9', 'HOTEL', 'CLUB', 'BAR', 'PIZZA', 'TATOO', 'MOTEL', 'DINER', 'NEON', 'MODE'];
   for (let rx = 0; rx < COLS; rx++) {
-    const wx = rx * ww + 8, ww2 = ww - 16;
-    g.fillStyle = '#101b2e';
-    g.fillRect(wx, AH - SHOPH + 14, ww2, SHOPH - 14);
-    g.fillStyle = 'rgba(180,215,255,.22)';
-    g.fillRect(wx + 4, AH - SHOPH + 18, ww2 * 0.3, SHOPH - 22);
-    g.fillStyle = cols[Math.floor(Math.random() * cols.length)];
-    g.fillRect(wx - 3, AH - SHOPH + 6, ww2 + 6, 9);
+    const wx = rx * ww + 6, w2 = ww - 12;
+    const cc = cols[Math.floor(Math.random() * cols.length)];
+    g.fillStyle = cc;
+    g.fillRect(wx, sy + 8, w2, 20);
+    g.fillStyle = '#0c1424';
+    g.fillRect(wx, sy + 34, w2, SHOPH - 34);
+    g.fillStyle = 'rgba(180,215,255,.25)';
+    g.fillRect(wx + 4, sy + 38, w2 * 0.3, SHOPH - 46);
+    g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 2;
+    g.strokeRect(wx + 4, sy + 38, w2 * 0.3, SHOPH - 46);
+    g.fillStyle = '#fff';
+    g.font = 'bold 15px sans-serif';
+    g.textAlign = 'center';
+    const word = words[Math.floor(Math.random() * words.length)];
+    g.fillText(word.slice(0, 6), wx + w2 / 2, sy + 24, w2 - 6);
+    if (Math.random() < 0.5) {
+      g.fillStyle = cc;
+      for (let st = 0; st < 4; st++) g.fillRect(wx + st * (w2 / 4), sy + 30, w2 / 8, 6);
+    }
   }
+  g.textAlign = 'left';
+  grunge(g, AW, AH, 1200, 0.05);
   const c2 = document.createElement('canvas'); c2.width = AW; c2.height = AH;
   const g2 = c2.getContext('2d');
   g2.fillStyle = '#000'; g2.fillRect(0, 0, AW, AH);
   for (let ry = 0; ry < ROWS; ry++) for (let rx = 0; rx < COLS; rx++) {
     if (Math.random() < lit) {
+      const wx = rx * ww + ww * 0.14, wy = 14 + ry * RH, w2 = ww * 0.72, h2 = RH * 0.62;
       g2.fillStyle = Math.random() < 0.82 ? '#ffca7a' : '#8fd8ff';
-      g2.fillRect(rx * ww + ww * 0.16 + 1, 10 + ry * RH + 1, ww * 0.68 - 2, RH * 0.58 - 2);
+      g2.fillRect(wx + 1, wy + 1, w2 - 2, h2 - 2);
+      if (Math.random() < 0.4) {
+        g2.fillStyle = 'rgba(0,0,0,0.55)';
+        g2.fillRect(wx + 1, wy + 1, w2 * (0.2 + Math.random() * 0.35), h2 - 2);
+      }
     }
   }
-  const shopGlow = document.createElement('canvas'); shopGlow.width = AW; shopGlow.height = SHOPH;
-  const g3 = shopGlow.getContext('2d');
   for (let rx = 0; rx < COLS; rx++) {
-    if (Math.random() < 0.55) {
-      g3.fillStyle = Math.random() < 0.5 ? 'rgba(255,190,110,0.85)' : 'rgba(150,200,255,0.8)';
-      g3.fillRect(rx * ww + 8, 14, ww - 16, SHOPH - 14);
+    if (Math.random() < 0.65) {
+      const wx = rx * ww + 6, w2 = ww - 12;
+      g2.fillStyle = Math.random() < 0.5 ? 'rgba(255,190,110,0.95)' : 'rgba(150,200,255,0.9)';
+      g2.fillRect(wx, AH - SHOPH + 34, w2, SHOPH - 34);
+      g2.fillStyle = 'rgba(255,120,90,0.9)';
+      g2.fillRect(wx, AH - SHOPH + 8, w2, 20);
     }
   }
-  g2.drawImage(shopGlow, 0, AH - SHOPH);
-  const map = new THREE.CanvasTexture(c1), em = new THREE.CanvasTexture(c2);
-  return { map: aniso(map), emissive: aniso(em) };
+  return { map: texOf(c1), emissive: texOf(c2) };
 }
 
 function shade(hex, f) {
@@ -201,16 +398,20 @@ const City = {
     this.group = new THREE.Group();
     scene.add(this.group);
 
-    const grassTex = tileTexture('#4f8a52', 900, null, null); grassTex.repeat.set(40, 34);
+    const grassTex = makeGrassTexture(); grassTex.repeat.set(48, 43);
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.W + 150, WORLD.H + 150), new THREE.MeshLambertMaterial({ map: grassTex }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(WORLD.W / 2 - 100, 0, WORLD.H / 2);
     ground.receiveShadow = true;
     this.group.add(ground);
 
-    const swTex = tileTexture('#a3a6ab', 350, 'rgba(0,0,0,.16)', 6); swTex.repeat.set(40, 400);
-    const asphalt = makeRoadTexture(); asphalt.repeat.set(2, 100);
-    const concrete = new THREE.MeshLambertMaterial({ map: swTex });
-    const roadMat = new THREE.MeshLambertMaterial({ map: asphalt });
+    const swTexA = makeSidewalkTexture(); swTexA.repeat.set(1, 34);
+    const swTexB = makeSidewalkTexture(); swTexB.repeat.set(34, 1);
+    const asphaltX = makeRoadTexture(); asphaltX.repeat.set(1, 50);
+    const asphaltZ = makeRoadTexture(); asphaltZ.repeat.set(47, 1);
+    const concrete = new THREE.MeshLambertMaterial({ map: swTexA });
+    const concreteB = new THREE.MeshLambertMaterial({ map: swTexB });
+    const roadMat = new THREE.MeshLambertMaterial({ map: asphaltX });
+    const roadMatB = new THREE.MeshLambertMaterial({ map: asphaltZ });
     const lineMat = new THREE.MeshLambertMaterial({ color: 0xe6e2cf });
 
     for (const x of WORLD.Xs) {
@@ -224,9 +425,9 @@ const City = {
       }
     }
     for (const z of WORLD.Ys) {
-      const sw = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.CITY_X_MAX + 160, 170), concrete);
+      const sw = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.CITY_X_MAX + 160, 170), concreteB);
       sw.rotation.x = -Math.PI / 2; sw.position.set((WORLD.CITY_X_MAX + 160) / 2 - 80, 0.015, z); sw.receiveShadow = true; this.group.add(sw);
-      const rd = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.CITY_X_MAX + 120, WORLD.ROAD), roadMat);
+      const rd = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.CITY_X_MAX + 120, WORLD.ROAD), roadMatB);
       rd.rotation.x = -Math.PI / 2; rd.position.set(WORLD.CITY_X_MAX / 2, 0.035, z); rd.receiveShadow = true; this.group.add(rd);
       for (let x = 40; x < WORLD.CITY_X_MAX; x += 90) {
         const dash = new THREE.Mesh(new THREE.PlaneGeometry(34, 3), lineMat);
@@ -272,7 +473,7 @@ const City = {
         const cxm = (x0 + x1) / 2, czm = (z0 + z1) / 2;
         const distC = Math.min(1, Math.hypot((cxm - WORLD.CITY_X_MAX * 0.5) / (WORLD.CITY_X_MAX * 0.52), (czm - WORLD.H / 2) / (WORLD.H * 0.52)));
         if (parkSet.has(blockIdx)) {
-          const gt = tileTexture('#549a52', 900, null, null); gt.repeat.set(bw / 100, bd / 100);
+          const gt = makeGrassTexture(); gt.repeat.set(bw / 130, bd / 130);
           const grass = new THREE.Mesh(new THREE.PlaneGeometry(bw, bd), new THREE.MeshLambertMaterial({ map: gt }));
           grass.rotation.x = -Math.PI / 2; grass.position.set(cxm, 0.02, czm); grass.receiveShadow = true; this.group.add(grass);
           for (let p = 0; p < 6; p++) {
@@ -280,6 +481,23 @@ const City = {
             const palm = makePalm(); palm.position.set(px, 0, pz); this.group.add(palm);
             this.palms.push(palm);
             Colliders.add({ x: px, z: pz, r: 6 });
+          }
+          for (let bn = 0; bn < 3; bn++) {
+            const bx2 = cxm + (Math.random() - 0.5) * (bw - 120), bz2 = czm + (Math.random() - 0.5) * (bd - 120);
+            const bench = new THREE.Group();
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(22, 2.5, 6), new THREE.MeshLambertMaterial({ color: 0x7a5230 }));
+            seat.position.y = 5.5; seat.castShadow = true;
+            const back = new THREE.Mesh(new THREE.BoxGeometry(22, 6, 2), new THREE.MeshLambertMaterial({ color: 0x6b4628 }));
+            back.position.set(0, 9, -2.2); back.castShadow = true;
+            for (const lx of [-8, 8]) {
+              const leg = new THREE.Mesh(new THREE.BoxGeometry(2.4, 5.5, 5), new THREE.MeshLambertMaterial({ color: 0x3a3f45 }));
+              leg.position.set(lx, 2.7, 0); bench.add(leg);
+            }
+            bench.add(seat, back);
+            bench.position.set(bx2, 0, bz2);
+            bench.rotation.y = Math.random() * Math.PI;
+            this.group.add(bench);
+            Colliders.add({ x: bx2, z: bz2, hw: 11, hd: 4 });
           }
           blockIdx++; continue;
         }
@@ -324,7 +542,7 @@ const City = {
       }
     }
 
-    const sandTex = tileTexture('#ead9a0', 800, null, null); sandTex.repeat.set(8, 40);
+    const sandTex = makeSandTexture(); sandTex.repeat.set(12, 62);
     const sand = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.W - WORLD.SAND_X + 120, WORLD.H + 80), new THREE.MeshLambertMaterial({ map: sandTex }));
     sand.rotation.x = -Math.PI / 2; sand.position.set(WORLD.SAND_X + (WORLD.W - WORLD.SAND_X + 120) / 2, 0.005, WORLD.H / 2);
     sand.receiveShadow = true;
@@ -334,15 +552,72 @@ const City = {
       this.palms.push(palm);
       Colliders.add({ x: palm.position.x, z, r: 6 });
     }
-    const wt = tileTexture('#1668c9', 320, 'rgba(255,255,255,.28)', 6);
-    wt.repeat.set(14, 70);
-    this.waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(1100, WORLD.H + 500), new THREE.MeshPhongMaterial({ color: 0x1668c9, map: wt, transparent: true, opacity: 0.94, shininess: 140, specular: 0x9fd4ff }));
+    const wt = makeWaterTexture();
+    wt.repeat.set(7, 34);
+    this.waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(1100, WORLD.H + 500), new THREE.MeshPhongMaterial({ color: 0xffffff, map: wt, transparent: true, opacity: 0.94, shininess: 140, specular: 0x9fd4ff }));
     this.waterMesh.rotation.x = -Math.PI / 2; this.waterMesh.position.set(WORLD.WATER_X + 550, 0.2, WORLD.H / 2);
     this.group.add(this.waterMesh);
 
     this.buildSky(scene);
     this.buildLamps();
+    this.buildDetails();
     this.buildInteriors();
+  },
+
+  buildDetails() {
+    const dummy = new THREE.Object3D();
+    const spots = [];
+    for (const rx of WORLD.Xs) for (let z = 320; z < WORLD.H; z += 560) spots.push([rx + (Math.random() < 0.5 ? -WORLD.LANE : WORLD.LANE), z]);
+    for (const rz of WORLD.Ys) for (let x = 320; x < WORLD.CITY_X_MAX; x += 560) spots.push([x, rz + (Math.random() < 0.5 ? -WORLD.LANE : WORLD.LANE)]);
+    const mh = new THREE.InstancedMesh(new THREE.CircleGeometry(7, 14), new THREE.MeshLambertMaterial({ color: 0x1d2024 }), spots.length);
+    for (let i = 0; i < spots.length; i++) {
+      dummy.position.set(spots[i][0], 0.07, spots[i][1]); dummy.rotation.set(-Math.PI / 2, 0, Math.random() * Math.PI); dummy.updateMatrix();
+      mh.setMatrixAt(i, dummy.matrix);
+    }
+    dummy.rotation.set(0, 0, 0);
+    this.group.add(mh);
+
+    const hyd = [];
+    for (const rx of WORLD.Xs) for (let z = 260; z < WORLD.H; z += 780) hyd.push([rx + (WORLD.ROAD / 2 + 22), z]);
+    for (const rz of WORLD.Ys) for (let x = 260; x < WORLD.CITY_X_MAX; x += 780) hyd.push([x, rz - (WORLD.ROAD / 2 + 22)]);
+    const hbody = new THREE.InstancedMesh(new THREE.CylinderGeometry(2.6, 3, 9, 8), new THREE.MeshPhongMaterial({ color: 0xc23a2e, shininess: 60 }), hyd.length);
+    const hcap = new THREE.InstancedMesh(new THREE.SphereGeometry(2.6, 8, 6), new THREE.MeshPhongMaterial({ color: 0xd9453a, shininess: 70 }), hyd.length);
+    for (let i = 0; i < hyd.length; i++) {
+      dummy.position.set(hyd[i][0], 4.5, hyd[i][1]); dummy.updateMatrix(); hbody.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(hyd[i][0], 9.6, hyd[i][1]); dummy.updateMatrix(); hcap.setMatrixAt(i, dummy.matrix);
+      Colliders.add({ x: hyd[i][0], z: hyd[i][1], r: 3 });
+    }
+    this.group.add(hbody); this.group.add(hcap);
+
+    const bins = [];
+    for (const rx of WORLD.Xs) for (let z = 480; z < WORLD.H; z += 940) bins.push([rx - (WORLD.ROAD / 2 + 20), z]);
+    for (const rz of WORLD.Ys) for (let x = 480; x < WORLD.CITY_X_MAX; x += 940) bins.push([x, rz + (WORLD.ROAD / 2 + 20)]);
+    const bin = new THREE.InstancedMesh(new THREE.CylinderGeometry(4.4, 3.8, 10, 9), new THREE.MeshPhongMaterial({ color: 0x2e5e46, shininess: 30 }), bins.length);
+    for (let i = 0; i < bins.length; i++) {
+      dummy.position.set(bins[i][0], 5, bins[i][1]); dummy.updateMatrix(); bin.setMatrixAt(i, dummy.matrix);
+      Colliders.add({ x: bins[i][0], z: bins[i][1], r: 4.5 });
+    }
+    this.group.add(bin);
+
+    const tl = [];
+    for (let i = 0; i < WORLD.Xs.length; i += 2) for (let j = 0; j < WORLD.Ys.length; j += 2) {
+      tl.push([WORLD.Xs[i] + WORLD.ROAD / 2 + 14, WORLD.Ys[j] + WORLD.ROAD / 2 + 14, (i + j) % 4]);
+    }
+    const tlp = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.1, 1.5, 30, 6), new THREE.MeshLambertMaterial({ color: 0x33383e }), tl.length);
+    const tlh = new THREE.InstancedMesh(new THREE.BoxGeometry(5, 12, 5), new THREE.MeshLambertMaterial({ color: 0x171a1e }), tl.length);
+    const redLit = new THREE.InstancedMesh(new THREE.SphereGeometry(1.7, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2e1f }), tl.length);
+    const grnLit = new THREE.InstancedMesh(new THREE.SphereGeometry(1.7, 8, 6), new THREE.MeshBasicMaterial({ color: 0x2eff6a }), tl.length);
+    let ri = 0, gi = 0;
+    for (let i = 0; i < tl.length; i++) {
+      const [x, z, ph] = tl[i];
+      dummy.position.set(x, 15, z); dummy.updateMatrix(); tlp.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(x, 32, z); dummy.updateMatrix(); tlh.setMatrixAt(i, dummy.matrix);
+      const go = ph % 2 === 0;
+      if (go) { dummy.position.set(x, 29, z); dummy.updateMatrix(); grnLit.setMatrixAt(gi++, dummy.matrix); }
+      else { dummy.position.set(x, 35, z); dummy.updateMatrix(); redLit.setMatrixAt(ri++, dummy.matrix); }
+      Colliders.add({ x, z, r: 2 });
+    }
+    this.group.add(tlp); this.group.add(tlh); this.group.add(redLit); this.group.add(grnLit);
   },
 
   buildSky(scene) {

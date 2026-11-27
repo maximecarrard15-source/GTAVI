@@ -60,6 +60,7 @@ const Game = {
     this.group.add(this.player.group);
 
     for (let i = 0; i < 26; i++) this.spawnTraffic();
+    for (let i = 0; i < 12; i++) this.spawnParked();
     for (let i = 0; i < 70; i++) {
       const pt = City.randomSidewalkPoint();
       if (Math.hypot(pt.x - this.player.pos.x, pt.z - this.player.pos.z) < 250) continue;
@@ -203,6 +204,27 @@ const Game = {
       car.driver = 'ai';
       car.dir = di !== 0 ? (di > 0 ? 0 : 2) : (dj > 0 ? 1 : 3);
       car.node = [xi + di, zi + dj];
+      this.addCar(car);
+      return;
+    }
+  },
+
+  spawnParked() {
+    for (let t = 0; t < 30; t++) {
+      const onX = Math.random() < 0.5;
+      const road = onX ? WORLD.Xs[Math.floor(Math.random() * WORLD.Xs.length)] : WORLD.Ys[Math.floor(Math.random() * WORLD.Ys.length)];
+      const along = 300 + Math.random() * ((onX ? WORLD.H : WORLD.CITY_X_MAX) - 600);
+      const side = Math.random() < 0.5 ? 1 : -1;
+      const off = side * (WORLD.ROAD / 2 - 14);
+      const x = onX ? road + off : along;
+      const z = onX ? along : road + off;
+      if (Math.hypot(x - this.playerPos().x, z - this.playerPos().z) < 300) continue;
+      let clash = false;
+      for (const c of this.cars) if (Math.hypot(c.pos.x - x, c.pos.z - z) < 90) { clash = true; break; }
+      if (clash) continue;
+      const types = ['sedan', 'sedan', 'pickup', 'taxi', 'sport'];
+      const car = new Car(types[Math.floor(Math.random() * types.length)], x, z, onX ? (side > 0 ? 0 : Math.PI) : (side > 0 ? Math.PI / 2 : -Math.PI / 2));
+      car.driver = null;
       this.addCar(car);
       return;
     }
@@ -493,10 +515,16 @@ const Game = {
   deadStateLoop(dt) {
     if (!this.player.deadState) return;
     this.deadT -= dt;
+    this.player.fallT = Math.min(1, (this.player.fallT || 0) + dt * 4.5);
+    const a = this.player.fallT, ease = a * a * (3 - 2 * a);
+    this.player.group.rotation.z = ease * Math.PI / 2;
+    this.player.group.position.y = ease * 2.4;
     if (this.deadT <= 0) {
       this.player.deadState = false;
       this.el.wasted.classList.add('hidden');
       document.getElementById('pause').classList.add('hidden');
+      this.player.group.rotation.z = 0;
+      this.player.group.position.y = 0;
       this.player.health = 100; this.player.armor = 0;
       if (this.player.car) { this.player.car.driver = null; this.player.car = null; Sound.stopEngine(); }
       this.player.pos.set(City.hospital.x + 120, 0, City.hospital.z + 40);
@@ -515,7 +543,7 @@ const Game = {
     this.el.wasted.classList.remove('hidden');
     Sound.stopEngine(); Sound.failed();
     if (this.player.car) { this.player.car.driver = null; this.player.car = null; }
-    if (this.player.group) this.player.group.rotation.z = Math.PI / 2.4;
+    if (this.player.group) { this.player.group.rotation.z = 0; this.player.fallT = 0; }
   },
 
   busted() {
