@@ -441,22 +441,22 @@ const City = {
 
     for (const x of WORLD.Xs) {
       const sw = new THREE.Mesh(new THREE.PlaneGeometry(170, WORLD.H), concrete);
-      sw.rotation.x = -Math.PI / 2; sw.position.set(x, 0.01, WORLD.H / 2); sw.receiveShadow = true; this.group.add(sw);
+      sw.rotation.x = -Math.PI / 2; sw.position.set(x, 0.14, WORLD.H / 2); sw.receiveShadow = true; this.group.add(sw);
       const rd = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.ROAD, WORLD.H), roadMat);
-      rd.rotation.x = -Math.PI / 2; rd.position.set(x, 0.03, WORLD.H / 2); rd.receiveShadow = true; this.group.add(rd);
+      rd.rotation.x = -Math.PI / 2; rd.position.set(x, 0.26, WORLD.H / 2); rd.receiveShadow = true; this.group.add(rd);
       for (let z = 40; z < WORLD.H; z += 90) {
         const dash = new THREE.Mesh(new THREE.PlaneGeometry(3, 34), lineMat);
-        dash.rotation.x = -Math.PI / 2; dash.position.set(x, 0.05, z); this.group.add(dash);
+        dash.rotation.x = -Math.PI / 2; dash.position.set(x, 0.32, z); this.group.add(dash);
       }
     }
     for (const z of WORLD.Ys) {
       const sw = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.CITY_X_MAX + 160, 170), concreteB);
-      sw.rotation.x = -Math.PI / 2; sw.position.set((WORLD.CITY_X_MAX + 160) / 2 - 80, 0.015, z); sw.receiveShadow = true; this.group.add(sw);
+      sw.rotation.x = -Math.PI / 2; sw.position.set((WORLD.CITY_X_MAX + 160) / 2 - 80, 0.08, z); sw.receiveShadow = true; this.group.add(sw);
       const rd = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.CITY_X_MAX + 120, WORLD.ROAD), roadMatB);
-      rd.rotation.x = -Math.PI / 2; rd.position.set(WORLD.CITY_X_MAX / 2, 0.035, z); rd.receiveShadow = true; this.group.add(rd);
+      rd.rotation.x = -Math.PI / 2; rd.position.set(WORLD.CITY_X_MAX / 2, 0.2, z); rd.receiveShadow = true; this.group.add(rd);
       for (let x = 40; x < WORLD.CITY_X_MAX; x += 90) {
         const dash = new THREE.Mesh(new THREE.PlaneGeometry(34, 3), lineMat);
-        dash.rotation.x = -Math.PI / 2; dash.position.set(x, 0.05, z); this.group.add(dash);
+        dash.rotation.x = -Math.PI / 2; dash.position.set(x, 0.32, z); this.group.add(dash);
       }
     }
 
@@ -464,13 +464,13 @@ const City = {
     for (const x of WORLD.Xs) for (const z of WORLD.Ys) {
       for (let s = -3; s <= 3; s++) {
         const a = new THREE.Mesh(new THREE.PlaneGeometry(7, 26), crossMat);
-        a.rotation.x = -Math.PI / 2; a.position.set(x + s * 13, 0.06, z - WORLD.ROAD / 2 - 16); this.group.add(a);
+        a.rotation.x = -Math.PI / 2; a.position.set(x + s * 13, 0.38, z - WORLD.ROAD / 2 - 16); this.group.add(a);
         const b = new THREE.Mesh(new THREE.PlaneGeometry(7, 26), crossMat);
-        b.rotation.x = -Math.PI / 2; b.position.set(x + s * 13, 0.06, z + WORLD.ROAD / 2 + 16); this.group.add(b);
+        b.rotation.x = -Math.PI / 2; b.position.set(x + s * 13, 0.38, z + WORLD.ROAD / 2 + 16); this.group.add(b);
         const c = new THREE.Mesh(new THREE.PlaneGeometry(26, 7), crossMat);
-        c.rotation.x = -Math.PI / 2; c.position.set(x - WORLD.ROAD / 2 - 16, 0.06, z + s * 13); this.group.add(c);
+        c.rotation.x = -Math.PI / 2; c.position.set(x - WORLD.ROAD / 2 - 16, 0.38, z + s * 13); this.group.add(c);
         const d = new THREE.Mesh(new THREE.PlaneGeometry(26, 7), crossMat);
-        d.rotation.x = -Math.PI / 2; d.position.set(x + WORLD.ROAD / 2 + 16, 0.06, z + s * 13); this.group.add(d);
+        d.rotation.x = -Math.PI / 2; d.position.set(x + WORLD.ROAD / 2 + 16, 0.38, z + s * 13); this.group.add(d);
       }
     }
 
@@ -500,7 +500,7 @@ const City = {
         if (parkSet.has(blockIdx)) {
           const gt = makeGrassTexture(); gt.repeat.set(bw / 130, bd / 130);
           const grass = new THREE.Mesh(new THREE.PlaneGeometry(bw, bd), new THREE.MeshLambertMaterial({ map: gt }));
-          grass.rotation.x = -Math.PI / 2; grass.position.set(cxm, 0.02, czm); grass.receiveShadow = true; this.group.add(grass);
+          grass.rotation.x = -Math.PI / 2; grass.position.set(cxm, 0.12, czm); grass.receiveShadow = true; this.group.add(grass);
           for (let p = 0; p < 6; p++) {
             const px = x0 + 20 + Math.random() * (bw - 40), pz = z0 + 20 + Math.random() * (bd - 40);
             const palm = makePalm(); palm.position.set(px, 0, pz); this.group.add(palm);
@@ -569,7 +569,7 @@ const City = {
 
     const sandTex = makeSandTexture(); sandTex.repeat.set(12, 62);
     const sand = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.W - WORLD.SAND_X + 120, WORLD.H + 80), new THREE.MeshLambertMaterial({ map: sandTex }));
-    sand.rotation.x = -Math.PI / 2; sand.position.set(WORLD.SAND_X + (WORLD.W - WORLD.SAND_X + 120) / 2, 0.005, WORLD.H / 2);
+    sand.rotation.x = -Math.PI / 2; sand.position.set(WORLD.SAND_X + (WORLD.W - WORLD.SAND_X + 120) / 2, 0.02, WORLD.H / 2);
     sand.receiveShadow = true;
     this.group.add(sand);
     for (let z = 100; z < WORLD.H; z += 130) {
@@ -579,8 +579,8 @@ const City = {
     }
     const wt = makeWaterTexture();
     wt.repeat.set(7, 34);
-    this.waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(1100, WORLD.H + 500), new THREE.MeshPhongMaterial({ color: 0xffffff, map: wt, transparent: true, opacity: 0.94, shininess: 140, specular: 0x9fd4ff }));
-    this.waterMesh.rotation.x = -Math.PI / 2; this.waterMesh.position.set(WORLD.WATER_X + 550, 0.2, WORLD.H / 2);
+    this.waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(1100, WORLD.H + 500), new THREE.MeshPhongMaterial({ color: 0xffffff, map: wt, transparent: true, opacity: 0.94, shininess: 95, specular: 0x6fa8d8 }));
+    this.waterMesh.rotation.x = -Math.PI / 2; this.waterMesh.position.set(WORLD.WATER_X + 550, 0.3, WORLD.H / 2);
     this.group.add(this.waterMesh);
 
     this.buildSky(scene);
@@ -670,7 +670,7 @@ const City = {
     for (const rz of WORLD.Ys) for (let x = 320; x < WORLD.CITY_X_MAX; x += 560) spots.push([x, rz + (Math.random() < 0.5 ? -WORLD.LANE : WORLD.LANE)]);
     const mh = new THREE.InstancedMesh(new THREE.CircleGeometry(7, 14), new THREE.MeshLambertMaterial({ color: 0x1d2024 }), spots.length);
     for (let i = 0; i < spots.length; i++) {
-      dummy.position.set(spots[i][0], 0.07, spots[i][1]); dummy.rotation.set(-Math.PI / 2, 0, Math.random() * Math.PI); dummy.updateMatrix();
+      dummy.position.set(spots[i][0], 0.44, spots[i][1]); dummy.rotation.set(-Math.PI / 2, 0, Math.random() * Math.PI); dummy.updateMatrix();
       mh.setMatrixAt(i, dummy.matrix);
     }
     dummy.rotation.set(0, 0, 0);
@@ -881,7 +881,7 @@ const City = {
 
   update(t) {
     if (this.waterMesh) {
-      this.waterMesh.position.y = 0.2 + Math.sin(t * 1.4) * 0.25;
+      this.waterMesh.position.y = 0.3 + Math.sin(t * 1.4) * 0.12;
       const m = this.waterMesh.material.map;
       m.offset.y = (t * 0.012) % 1;
       m.offset.x = Math.sin(t * 0.07) * 0.06;

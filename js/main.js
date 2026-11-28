@@ -21,7 +21,7 @@ const Game = {
     this.scene = new THREE.Scene();
     this.scene.background = City.skyDay.clone();
     this.scene.fog = new THREE.Fog(City.skyDay.clone().getHex(), 600, 4300);
-    this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.5, 13000);
+    this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 1.2, 13000);
     this.camera.position.set(150, 60, 400);
     this.group = new THREE.Group();
     this.scene.add(this.group);
@@ -1085,7 +1085,8 @@ const Game = {
     const pilot = this.player.plane && this.player.pilot;
     const move = pilot ? 0 : (Input.axis('KeyS', 'KeyW') || Input.axis('ArrowDown', 'ArrowUp'));
     const strafe = pilot ? 0 : (Input.axis('KeyA', 'KeyD') || Input.axis('ArrowLeft', 'ArrowRight'));
-    const spd = 150;
+    const sprint = !pilot && (Input.isDown('ShiftLeft') || Input.isDown('ShiftRight'));
+    const spd = sprint ? 280 : 150;
     if (move !== 0 || strafe !== 0) {
       const fx = Math.cos(Input.look.yaw), fz = Math.sin(Input.look.yaw);
       const rx = -Math.sin(Input.look.yaw), rz = Math.cos(Input.look.yaw);
@@ -1097,7 +1098,7 @@ const Game = {
       this.player.pos.z += dz * spd * dt;
       this.player.angle = Math.atan2(dz, dx);
       this.player.moveDir = this.player.angle;
-      this.player.walkT = (this.player.walkT || 0) + dt * 10;
+      this.player.walkT = (this.player.walkT || 0) + dt * (sprint ? 16 : 10);
       this.player.legs[0].position.z = Math.sin(this.player.walkT) * 2.4;
       this.player.legs[1].position.z = -Math.sin(this.player.walkT) * 2.4;
       const sw = Math.sin(this.player.walkT);

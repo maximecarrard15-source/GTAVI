@@ -24,6 +24,7 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
 | `H` | Klaxon |
 | `1` / `2` / `3` / `4` / `5` | Pistolet / SMG / Fusil à pompe / Sniper / Mitrailleuse |
 | `Espace` (à pied) | Sauter |
+| `Maj` (à pied) | Sprinter (x1,9) |
 | `Échap` / `P` | Pause |
 
 ## 🚗 Contenu
@@ -63,6 +64,11 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   bâtiments visitables (chaque intérieur contient un type d'arme, réapprovisionnable
   après cooldown).
 - **Saut** : `Espace` à pied pour sauter.
+- **Sprint** : `Maj` à pied pour courir presque deux fois plus vite.
+- **Anti-scintillement en altitude** : les couches du sol (trottoirs, routes,
+  marquages, passages piétons, plaques d'égout) sont désormais clairement
+  séparées en profondeur — plus de clignotement blanc quand tu regardes la
+  ville depuis un avion.
 - **Aéroport international** sur une île au coin sud-est de la carte (pont d'accès
   depuis la plage, à pied ou en voiture) : piste diagonale avec seuils, numéros
   et feux de bord, terminal, tour de contrôle, hangar.
