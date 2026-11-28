@@ -62,22 +62,28 @@ const Missions = {
     },
     {
       name: 'CHASSEUR DE PRIMES',
-      brief: 'Traque le fugitif et percute-le avec le véhicule.',
+      brief: 'Traque le fugitif : percute-le ou tire dessus !',
       startPt: { x: 2850, z: 2850 },
       reward: 800,
       init(obj) {
-        const pt = City.randomSidewalkPoint();
+        let pt = null;
+        for (let i = 0; i < 40; i++) {
+          const x = WORLD.Xs[Math.floor(Math.random() * WORLD.Xs.length)], z = WORLD.Ys[Math.floor(Math.random() * WORLD.Ys.length)];
+          const d = Math.hypot(x - Game.playerPos().x, z - Game.playerPos().z);
+          if (d > 500 && d < 1800) { pt = { x, z }; break; }
+        }
+        if (!pt) pt = City.randomSidewalkPoint();
         obj.targetPed = new Ped(pt.x, pt.z);
         obj.targetPed.fugitive = true;
-        obj.targetPed.speed = 130;
+        obj.targetPed.speed = 85;
         Game.group.add(obj.targetPed.group);
         obj.peds = [obj.targetPed];
         Missions.setMarker(obj.targetPed.pos, 0xff7043);
       },
       update(obj, dt) {
-        obj.setObjective('Percute le fugitif avec une voiture !');
+        obj.setObjective('Traque le fugitif — percute-le ou tire dessus !');
         const t = obj.targetPed;
-        if (t.dead) return 'fail-dead';
+        if (t.dead) return 'done';
         t.scare(Game.playerPos().x, Game.playerPos().z);
         Missions.setMarker(t.pos, 0xff7043);
         const pos = Game.playerPos();
@@ -201,7 +207,7 @@ const Missions = {
       if (res === 'done') this.complete();
       else if (res && res.startsWith('fail')) {
         const why = res.split('-')[1];
-        Game.toast('✖ Mission échouée : ' + (why === 'time' ? 'temps écoulé' : why === 'noCar' ? 'tu es sorti du véhicule' : 'cible morte'), true);
+        Game.toast('✖ Mission échouée : ' + (why === 'time' ? 'temps écoulé' : 'tu es sorti du véhicule'), true);
         Sound.failed(); this.reset();
       }
     }

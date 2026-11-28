@@ -70,6 +70,9 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   de feux tricolores ont été retirés des carrefours.
 - **4 missions** : Livraison Express, Vice Rush (course à checkpoints),
   Chasseur de primes, Contrebande.
+- **Chasseur de primes amélioré** : le fugitif est plus lent, **fuit le long des
+  routes** (il ne se coince plus entre les immeubles) et tu peux l'**abattre à
+  l'arme à feu** en plus de le percuter en voiture — les deux valident la mission.
 - **Navigation de mission impossible à rater** : chaque marqueur (départ,
   destination, checkpoints, colis) est surmonté d'une **colonne de lumière
   géante pulsante** visible de très loin ; une **flèche de direction + distance

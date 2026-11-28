@@ -353,17 +353,44 @@ class Ped {
   scare(fromX, fromZ) {
     if (this.dead) return;
     this.panic = Math.max(this.panic, 6);
+    if (this.fugitive) return;
     const dx = this.pos.x - fromX, dz = this.pos.z - fromZ;
     if (Math.hypot(dx, dz) < 160) this.target = { x: this.pos.x + dx * 3, z: this.pos.z + dz * 3 };
   }
 
+  fleeNode() {
+    const pp = Game.playerPos();
+    let bi = 0, bj = 0, bd = Infinity;
+    for (let i = 0; i < WORLD.Xs.length; i++) { const d = Math.abs(WORLD.Xs[i] - this.pos.x); if (d < bd) { bd = d; bi = i; } }
+    bd = Infinity;
+    for (let j = 0; j < WORLD.Ys.length; j++) { const d = Math.abs(WORLD.Ys[j] - this.pos.z); if (d < bd) { bd = d; bj = j; } }
+    const cand = [];
+    if (bi > 0) cand.push([bi - 1, bj]);
+    if (bi < WORLD.Xs.length - 1) cand.push([bi + 1, bj]);
+    if (bj > 0) cand.push([bi, bj - 1]);
+    if (bj < WORLD.Ys.length - 1) cand.push([bi, bj + 1]);
+    let best = cand[0], bs = -1;
+    for (const c of cand) {
+      const s = Math.hypot(WORLD.Xs[c[0]] - pp.x, WORLD.Ys[c[1]] - pp.z) + Math.random() * 350;
+      if (s > bs) { bs = s; best = c; }
+    }
+    return { x: WORLD.Xs[best[0]], z: WORLD.Ys[best[1]] };
+  }
+
   update(dt) {
     if (this.dead) { this.deadT += dt; this.group.rotation.z = Math.min(Math.PI / 2, this.deadT * 6); return; }
-    let dist = Math.hypot(this.target.x - this.pos.x, this.target.z - this.pos.z);
-    if (dist < 14) {
-      this.target = this.panic > 0 ? { x: this.pos.x + (Math.random() - 0.5) * 400, z: this.pos.z + (Math.random() - 0.5) * 400 } : City.randomSidewalkPoint();
+    if (this.fugitive) {
+      this.fleeT = (this.fleeT || 0) - dt;
+      if (!this.target || this.fleeT <= 0 || Math.hypot(this.target.x - this.pos.x, this.target.z - this.pos.z) < 24) {
+        this.target = this.fleeNode(); this.fleeT = 6;
+      }
+    } else {
+      const dist = Math.hypot(this.target.x - this.pos.x, this.target.z - this.pos.z);
+      if (dist < 14) {
+        this.target = this.panic > 0 ? { x: this.pos.x + (Math.random() - 0.5) * 400, z: this.pos.z + (Math.random() - 0.5) * 400 } : City.randomSidewalkPoint();
+      }
     }
-    const spd = this.panic > 0 ? this.speed * 2.4 : this.speed;
+    const spd = this.fugitive ? this.speed * (this.panic > 0 ? 1.35 : 1) : (this.panic > 0 ? this.speed * 2.4 : this.speed);
     if (this.panic > 0) this.panic -= dt;
     const dir = Math.atan2(this.target.z - this.pos.z, this.target.x - this.pos.x);
     this.angle = dir;

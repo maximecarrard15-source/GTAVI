@@ -368,7 +368,12 @@ const Game = {
           const pp = this.playerPos();
           if (Math.hypot(pp.x - nx, pp.z - nz) < 10) { this.player.damage(b.dmg); this.dirtyHUD = true; hit = true; }
         }
-        if (!hit && Missions.targetPed && Missions.targetPed.pos.distanceTo(new THREE.Vector3(nx, 0, nz)) < 8) { Missions.targetPed.scare(nx, nz); this.sparks(new THREE.Vector3(nx, 0, nz), 3, 0xc33); }
+        if (!hit && Missions.targetPed && Missions.state === 'running' && !Missions.targetPed.dead && Missions.targetPed.pos.distanceTo(new THREE.Vector3(nx, 0, nz)) < 12) {
+          Missions.targetPed.die(false);
+          this.sparks(new THREE.Vector3(nx, 0, nz), 4, 0xc33);
+          Game.toast('Fugitif neutralisé !');
+          hit = true;
+        }
       }
       if (!hit && b.byCop) {
         if (!this.player.car && !this.player.deadState && Math.hypot(this.player.pos.x - nx, this.player.pos.z - nz) < 8) {
