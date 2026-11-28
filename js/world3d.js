@@ -2,7 +2,8 @@ const WORLD = {
   W: 6200, H: 5550, ROAD: 110, LANE: 27,
   Xs: [150, 600, 1050, 1500, 1950, 2400, 2850, 3300, 3750, 4200, 4650, 5100],
   Ys: [150, 600, 1050, 1500, 1950, 2400, 2850, 3300, 3750, 4200, 4650, 5100],
-  SAND_X: 5210, WATER_X: 5350, CITY_X_MAX: 5100
+  SAND_X: 5210, WATER_X: 5350, CITY_X_MAX: 5100,
+  AIRPORT: { x0: 5470, x1: 6150, z0: 4640, z1: 5450, bridgeZ: 5150, rwA: { x: 6110, z: 5410 }, rwB: { x: 5510, z: 4810 } }
 };
 
 function aniso(t) {
@@ -227,6 +228,30 @@ function makeWaterTexture() {
     for (let x = 0; x <= 512; x += 24) g.lineTo(x, y + Math.sin(x * 0.04 + i) * 6);
     g.stroke();
   }
+  return texOf(c);
+}
+
+function makeRunwayTexture() {
+  const c = noiseCanvas(256, 512, '#494f55', 0);
+  const g = c.getContext('2d');
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = 'rgba(' + (20 + Math.random() * 40 | 0) + ',' + (22 + Math.random() * 40 | 0) + ',' + (26 + Math.random() * 40 | 0) + ',' + (0.06 + Math.random() * 0.1) + ')';
+    g.fillRect(Math.random() * 256, Math.random() * 512, 3 + Math.random() * 14, 2 + Math.random() * 8);
+  }
+  for (let i = 0; i < 26; i++) {
+    g.fillStyle = 'rgba(14,16,18,' + (0.1 + Math.random() * 0.14) + ')';
+    g.beginPath(); g.ellipse(Math.random() * 256, Math.random() * 512, 12 + Math.random() * 22, 6 + Math.random() * 10, Math.random() * 3, 0, 7); g.fill();
+  }
+  g.fillStyle = '#e8d44c';
+  for (let y = 20; y < 492; y += 48) g.fillRect(124, y, 8, 26);
+  g.fillStyle = '#f2f2f2';
+  for (let i = 0; i < 6; i++) {
+    g.fillRect(24 + i * 16, 480, 10, 30);
+    g.fillRect(24 + i * 16, 2, 10, 30);
+  }
+  g.fillStyle = '#e8e8e8';
+  g.font = 'bold 54px Arial';
+  g.save(); g.translate(58, 420); g.rotate(-Math.PI / 2); g.fillText('09', 0, 0); g.restore();
   return texOf(c);
 }
 
@@ -562,6 +587,80 @@ const City = {
     this.buildLamps();
     this.buildDetails();
     this.buildInteriors();
+    this.buildAirport();
+  },
+
+  buildAirport() {
+    const ap = WORLD.AIRPORT;
+    const apron = new THREE.MeshLambertMaterial({ color: 0x565c62 });
+    const island = new THREE.Mesh(new THREE.BoxGeometry(ap.x1 - ap.x0, 1.2, ap.z1 - ap.z0), apron);
+    island.position.set((ap.x0 + ap.x1) / 2, 0.1, (ap.z0 + ap.z1) / 2);
+    island.receiveShadow = true;
+    this.group.add(island);
+    const bridgeLen = ap.x0 - WORLD.SAND_X + 40;
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(bridgeLen, 1.2, 80), apron);
+    bridge.position.set(WORLD.SAND_X - 20 + bridgeLen / 2, 0.1, ap.bridgeZ);
+    bridge.receiveShadow = true;
+    this.group.add(bridge);
+    for (const ez of [ap.bridgeZ - 39, ap.bridgeZ + 39]) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(bridgeLen, 6, 2), new THREE.MeshLambertMaterial({ color: 0x9aa2ab }));
+      rail.position.set(bridge.position.x, 4, ez);
+      this.group.add(rail);
+    }
+    for (let bx = WORLD.WATER_X - 10; bx < ap.x0; bx += 45) {
+      Colliders.add({ x: bx, z: ap.bridgeZ - 40, r: 4 });
+      Colliders.add({ x: bx, z: ap.bridgeZ + 40, r: 4 });
+    }
+    const ang = Math.atan2(ap.rwB.z - ap.rwA.z, ap.rwB.x - ap.rwA.x);
+    const rwLen = Math.hypot(ap.rwB.x - ap.rwA.x, ap.rwB.z - ap.rwA.z);
+    const rwTex = makeRunwayTexture();
+    rwTex.repeat.set(1, 10);
+    const runway = new THREE.Mesh(new THREE.PlaneGeometry(72, rwLen + 60), new THREE.MeshLambertMaterial({ map: rwTex }));
+    runway.rotation.x = -Math.PI / 2;
+    runway.rotation.z = -ang;
+    runway.position.set((ap.rwA.x + ap.rwB.x) / 2, 0.72, (ap.rwA.z + ap.rwB.z) / 2);
+    runway.receiveShadow = true;
+    this.group.add(runway);
+    this.rwAngle = ang;
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xfff2c8 });
+    for (let t2 = 0; t2 <= rwLen; t2 += 65) {
+      for (const side of [-1, 1]) {
+        const lx = ap.rwA.x + Math.cos(ang) * t2 - Math.sin(ang) * side * 40;
+        const lz = ap.rwA.z + Math.sin(ang) * t2 + Math.cos(ang) * side * 40;
+        const l = new THREE.Mesh(new THREE.SphereGeometry(2, 6, 5), lightMat);
+        l.position.set(lx, 2, lz);
+        this.group.add(l);
+      }
+    }
+    const wt = makeWindowsTexture('#dfe4ea', 0.3);
+    const termSide = new THREE.MeshPhongMaterial({ map: wt.map, emissiveMap: wt.emissive, emissiveIntensity: 0, shininess: 20 });
+    const terminal = new THREE.Mesh(new THREE.BoxGeometry(300, 64, 130), termSide);
+    terminal.position.set(5800, 33, 4760);
+    terminal.castShadow = true;
+    this.group.add(terminal);
+    Colliders.add({ x: 5800, z: 4760, hw: 150, hd: 65 });
+    const termRoof = new THREE.Mesh(new THREE.BoxGeometry(320, 6, 150), new THREE.MeshLambertMaterial({ color: 0x3c4249 }));
+    termRoof.position.set(5800, 67, 4760);
+    this.group.add(termRoof);
+    const towerBase = new THREE.Mesh(new THREE.CylinderGeometry(16, 20, 110, 10), new THREE.MeshLambertMaterial({ color: 0xcfd5da }));
+    towerBase.position.set(5560, 56, 4760);
+    this.group.add(towerBase);
+    Colliders.add({ x: 5560, z: 4760, r: 20 });
+    const towerTop = new THREE.Mesh(new THREE.CylinderGeometry(26, 22, 22, 10), new THREE.MeshPhongMaterial({ color: 0x1c2833, shininess: 90 }));
+    towerTop.position.set(5560, 122, 4760);
+    this.group.add(towerTop);
+    const towerRoof = new THREE.Mesh(new THREE.CylinderGeometry(28, 28, 4, 10), new THREE.MeshLambertMaterial({ color: 0x3c4249 }));
+    towerRoof.position.set(5560, 135, 4760);
+    this.group.add(towerRoof);
+    const hangar = new THREE.Mesh(new THREE.BoxGeometry(150, 90, 120), new THREE.MeshPhongMaterial({ color: 0xb8bfc7, shininess: 30 }));
+    hangar.position.set(6010, 46, 5250);
+    hangar.castShadow = true;
+    this.group.add(hangar);
+    Colliders.add({ x: 6010, z: 5250, hw: 75, hd: 60 });
+    const hangarDoor = new THREE.Mesh(new THREE.BoxGeometry(4, 62, 90), new THREE.MeshLambertMaterial({ color: 0x6e767e }));
+    hangarDoor.position.set(5933, 32, 5250);
+    this.group.add(hangarDoor);
+    this.airport = ap;
   },
 
   buildDetails() {
@@ -807,7 +906,22 @@ const City = {
   },
 
   clampToLand(p, r) {
-    if (p.x > WORLD.WATER_X - r - 10) { p.x = WORLD.WATER_X - r - 10; return true; }
+    const ap = WORLD.AIRPORT;
+    if (p.x > WORLD.WATER_X - r - 10) {
+      const onBridge = Math.abs(p.z - ap.bridgeZ) < 44;
+      const onIsland = p.x > ap.x0 && p.z > ap.z0 && p.z < ap.z1;
+      if (!onBridge && !onIsland) { p.x = WORLD.WATER_X - r - 10; return true; }
+      let hit = false;
+      if (p.x > ap.x1 - r - 8) { p.x = ap.x1 - r - 8; hit = true; }
+      if (p.x > ap.x0) {
+        if (p.z < ap.z0 + r) { p.z = ap.z0 + r; hit = true; }
+        if (p.z > ap.z1 - r) { p.z = ap.z1 - r; hit = true; }
+      } else {
+        if (p.z < ap.bridgeZ - 40 + r) { p.z = ap.bridgeZ - 40 + r; hit = true; }
+        if (p.z > ap.bridgeZ + 40 - r) { p.z = ap.bridgeZ + 40 - r; hit = true; }
+      }
+      return hit;
+    }
     if (p.x < r + 10) { p.x = r + 10; return true; }
     if (p.z < r + 10) { p.z = r + 10; return true; }
     if (p.z > WORLD.H - r - 10) { p.z = WORLD.H - r - 10; return true; }

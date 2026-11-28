@@ -544,3 +544,207 @@ class Player {
     Game.dirtyHUD = true;
   }
 }
+
+class Plane {
+  constructor(i) {
+    const ap = WORLD.AIRPORT;
+    this.livery = [0xe0533f, 0x2f9fdb, 0xf2b134][i % 3];
+    this.pos = new THREE.Vector3(ap.rwA.x, 0, ap.rwA.z);
+    this.angle = Math.atan2(ap.rwB.z - ap.rwA.z, ap.rwB.x - ap.rwA.x);
+    this.speed = 0;
+    this.y = 0;
+    this.pitch = 0;
+    this.prevX = this.pos.x;
+    this.prevZ = this.pos.z;
+    this.phase = 'wait';
+    this.phaseT = 4 + i * 7;
+    this.turnT = 0;
+    this.group = new THREE.Group();
+    this.group.rotation.order = 'YXZ';
+    const body = new THREE.MeshPhongMaterial({ color: 0xf2f4f6, shininess: 110, specular: 0xbbccdd });
+    const acc = new THREE.MeshPhongMaterial({ color: this.livery, shininess: 90 });
+    const dark = new THREE.MeshPhongMaterial({ color: 0x22262b, shininess: 60 });
+    const glass = new THREE.MeshPhongMaterial({ color: 0x20303e, shininess: 160, specular: 0x99ccee });
+    const fus = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 84, 12), body);
+    fus.rotation.z = Math.PI / 2;
+    fus.position.y = 26;
+    fus.castShadow = true;
+    this.group.add(fus);
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(6, 12, 9), body);
+    nose.position.set(42, 26, 0);
+    this.group.add(nose);
+    const stripeL = new THREE.Mesh(new THREE.BoxGeometry(74, 3.4, 0.7), acc);
+    stripeL.position.set(0, 29, 6);
+    this.group.add(stripeL);
+    const stripeR = stripeL.clone();
+    stripeR.position.z = -6;
+    this.group.add(stripeR);
+    const cockpit = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 9.5), glass);
+    cockpit.position.set(35, 33, 0);
+    this.group.add(cockpit);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(27, 2.6, 112), body);
+    wing.position.set(2, 20, 0);
+    wing.castShadow = true;
+    this.group.add(wing);
+    const wingStripe = new THREE.Mesh(new THREE.BoxGeometry(27, 1, 6), acc);
+    wingStripe.position.set(2, 21.4, 0);
+    this.group.add(wingStripe);
+    for (const ez of [-28, 28]) {
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 4.6, 15, 10), dark);
+      eng.rotation.z = Math.PI / 2;
+      eng.position.set(8, 15, ez);
+      this.group.add(eng);
+      const fan = new THREE.Mesh(new THREE.CircleGeometry(4.2, 10), new THREE.MeshLambertMaterial({ color: 0x0b0d10 }));
+      fan.rotation.y = Math.PI / 2;
+      fan.position.set(15.6, 15, ez);
+      this.group.add(fan);
+    }
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(15, 24, 2.6), acc);
+    fin.position.set(-39, 41, 0);
+    this.group.add(fin);
+    const stab = new THREE.Mesh(new THREE.BoxGeometry(10, 2, 38), body);
+    stab.position.set(-40, 30, 0);
+    this.group.add(stab);
+    this.gear = [];
+    for (const gp of [[24, 0], [-8, -14], [-8, 14]]) {
+      const strut = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 12, 6), dark);
+      strut.position.set(gp[0], 8, gp[1]);
+      this.group.add(strut);
+      const wheel = new THREE.Mesh(new THREE.SphereGeometry(3, 8, 6), new THREE.MeshLambertMaterial({ color: 0x14161a }));
+      wheel.scale.y = 0.55;
+      wheel.position.set(gp[0], 2.5, gp[1]);
+      this.group.add(wheel);
+      this.gear.push(strut, wheel);
+    }
+    this.beacon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 6, 5), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
+    this.beacon.position.set(0, 33.5, 0);
+    this.group.add(this.beacon);
+  }
+
+  localOf(p) {
+    const dx = p.x - this.pos.x, dz = p.z - this.pos.z;
+    const c = Math.cos(this.angle), s = Math.sin(this.angle);
+    return { x: dx * c + dz * s, z: -dx * s + dz * c };
+  }
+
+  worldOf(lx, lz) {
+    const c = Math.cos(this.angle), s = Math.sin(this.angle);
+    return { x: this.pos.x + lx * c - lz * s, z: this.pos.z + lx * s + lz * c };
+  }
+
+  topAt(lx, lz) {
+    if (Math.abs(lx) < 13 && Math.abs(lz) < 6.5) return 32.5;
+    if (lx > -16 && lx < 15 && Math.abs(lz) < 56) return 21.3;
+    return null;
+  }
+
+  move(dt) {
+    this.pos.x += Math.cos(this.angle) * this.speed * dt;
+    this.pos.z += Math.sin(this.angle) * this.speed * dt;
+  }
+
+  update(dt) {
+    const ap = WORLD.AIRPORT;
+    this.prevX = this.pos.x;
+    this.prevZ = this.pos.z;
+    let targetPitch = 0;
+    if (this.phase === 'wait') {
+      this.speed = 0;
+      this.phaseT -= dt;
+      if (this.phaseT <= 0) this.phase = 'takeoff';
+    } else if (this.phase === 'takeoff') {
+      this.speed = Math.min(310, this.speed + 95 * dt);
+      this.move(dt);
+      if (this.speed >= 250) this.phase = 'climb';
+    } else if (this.phase === 'climb') {
+      this.speed = Math.min(450, this.speed + 65 * dt);
+      this.y = Math.min(560, this.y + 160 * dt);
+      this.move(dt);
+      targetPitch = 0.3;
+      if (this.y >= 560) this.phase = 'out';
+    } else if (this.phase === 'out') {
+      this.speed = 450;
+      const want = Math.atan2(700 - this.pos.z, 700 - this.pos.x);
+      let da = want - this.angle;
+      while (da > Math.PI) da -= 2 * Math.PI;
+      while (da < -Math.PI) da += 2 * Math.PI;
+      this.angle += da * Math.min(1, dt * 1.2);
+      this.move(dt);
+      targetPitch = 0.05;
+      if (Math.hypot(700 - this.pos.x, 700 - this.pos.z) < 350) { this.phase = 'turn'; this.turnT = 0; }
+    } else if (this.phase === 'turn') {
+      this.speed = 400;
+      this.angle += dt * 1.15;
+      this.turnT += dt * 1.15;
+      this.move(dt);
+      if (this.turnT >= Math.PI) { this.angle = this.baseAngle + Math.PI; this.phase = 'back'; }
+    } else if (this.phase === 'back') {
+      this.speed = 430;
+      const want = Math.atan2(ap.rwB.z - this.pos.z, ap.rwB.x - this.pos.x);
+      let da = want - this.angle;
+      while (da > Math.PI) da -= 2 * Math.PI;
+      while (da < -Math.PI) da += 2 * Math.PI;
+      this.angle += da * Math.min(1, dt * 1.5);
+      this.move(dt);
+      const dB = Math.hypot(ap.rwB.x - this.pos.x, ap.rwB.z - this.pos.z);
+      if (dB < 900) this.phase = 'descend';
+    } else if (this.phase === 'descend') {
+      const dx = ap.rwB.x - this.pos.x, dz = ap.rwB.z - this.pos.z;
+      const d = Math.hypot(dx, dz);
+      const want = Math.atan2(dz, dx);
+      let da = want - this.angle;
+      while (da > Math.PI) da -= 2 * Math.PI;
+      while (da < -Math.PI) da += 2 * Math.PI;
+      this.angle += da * Math.min(1, dt * 2.2);
+      this.speed = 330;
+      this.y = Math.max(0, Math.min(560, (d - 100) * 1.05));
+      this.move(dt);
+      targetPitch = -0.12;
+      if (d < 110) {
+        this.y = 0;
+        this.angle = this.baseAngle + Math.PI;
+        this.phase = 'roll';
+      }
+    } else if (this.phase === 'roll') {
+      this.speed = Math.max(0, this.speed - 130 * dt);
+      this.move(dt);
+      const c = Math.cos(this.angle), s = Math.sin(this.angle);
+      const t = Math.max(0, Math.min(rwLenSafe(), (this.pos.x - ap.rwB.x) * c + (this.pos.z - ap.rwB.z) * s));
+      this.pos.x = ap.rwB.x + c * t;
+      this.pos.z = ap.rwB.z + s * t;
+      if (this.speed <= 4) { this.speed = 0; this.phase = 'taxi'; }
+    } else if (this.phase === 'taxi') {
+      this.speed = 90;
+      this.move(dt);
+      const dA = Math.hypot(ap.rwA.x - this.pos.x, ap.rwA.z - this.pos.z);
+      if (dA < 30) { this.pos.x = ap.rwA.x; this.pos.z = ap.rwA.z; this.speed = 0; this.phase = 'groundturn'; this.turnT = 0; }
+    } else if (this.phase === 'groundturn') {
+      this.angle += dt * 1.5;
+      this.turnT += dt * 1.5;
+      if (this.turnT >= Math.PI) { this.angle = this.baseAngle; this.phase = 'wait'; this.phaseT = 7; }
+    }
+    if (this.phase === 'climb' || this.phase === 'out' || this.phase === 'turn' || this.phase === 'back' || this.phase === 'descend') {
+      if (this.pos.x < 250 || this.pos.z < 250 || this.pos.x > WORLD.W - 200 || this.pos.z > WORLD.H - 100) {
+        this.pos.x = Math.max(250, Math.min(WORLD.W - 200, this.pos.x));
+        this.pos.z = Math.max(250, Math.min(WORLD.H - 100, this.pos.z));
+      }
+    }
+    this.pitch += (targetPitch - this.pitch) * Math.min(1, dt * 3);
+    this.group.position.set(this.pos.x, this.y, this.pos.z);
+    this.group.rotation.y = -this.angle;
+    this.group.rotation.z = this.pitch;
+    const onGround = this.y < 2;
+    for (const g2 of this.gear) g2.visible = onGround;
+    this.beacon.visible = Math.floor(performance.now() / 450) % 2 === 0;
+  }
+
+  get baseAngle() {
+    const ap = WORLD.AIRPORT;
+    return Math.atan2(ap.rwB.z - ap.rwA.z, ap.rwB.x - ap.rwA.x);
+  }
+}
+
+function rwLenSafe() {
+  const ap = WORLD.AIRPORT;
+  return Math.hypot(ap.rwB.x - ap.rwA.x, ap.rwB.z - ap.rwA.z);
+}

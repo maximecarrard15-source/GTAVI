@@ -70,6 +70,13 @@ const Game = {
 
     for (let i = 0; i < 14; i++) this.spawnPickup(true);
 
+    this.planes = [];
+    for (let i = 0; i < 3; i++) {
+      const plane = new Plane(i);
+      this.planes.push(plane);
+      this.group.add(plane.group);
+    }
+
     const mk = (color) => new THREE.Mesh(
       new THREE.CylinderGeometry(18, 18, 50, 12),
       new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, depthWrite: false })
@@ -177,6 +184,13 @@ const Game = {
     g.fillStyle = '#22301f'; g.fillRect(0, 0, 176, 176);
     g.fillStyle = '#4c4630'; g.fillRect(WORLD.SAND_X * sc, 0, 176, 176);
     g.fillStyle = '#1a49a0'; g.fillRect(WORLD.WATER_X * sc, 0, 176, 176);
+    const ap = WORLD.AIRPORT;
+    g.fillStyle = '#3d434a';
+    g.fillRect(ap.x0 * sc, ap.z0 * sc, (ap.x1 - ap.x0) * sc, (ap.z1 - ap.z0) * sc);
+    g.fillStyle = '#2b3f66';
+    g.fillRect(WORLD.SAND_X * sc, (ap.bridgeZ - 40) * sc, (ap.x0 - WORLD.SAND_X + 40) * sc, 80 * sc);
+    g.strokeStyle = '#e8e8e8'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(ap.rwA.x * sc, ap.rwA.z * sc); g.lineTo(ap.rwB.x * sc, ap.rwB.z * sc); g.stroke();
     g.strokeStyle = '#565b64'; g.lineWidth = 3;
     for (const x of WORLD.Xs) { g.beginPath(); g.moveTo(x * sc, 0); g.lineTo(x * sc, WORLD.H * sc); g.stroke(); }
     for (const z of WORLD.Ys) { g.beginPath(); g.moveTo(0, z * sc); g.lineTo(WORLD.CITY_X_MAX * sc, z * sc); g.stroke(); }
@@ -441,11 +455,14 @@ const Game = {
       if (this.player.car) {
         if (Net.mode === 'client') { Net.clientEnterExit('exit'); this.prevF = f; return; }
       } else {
+        if (this.player.plane) { this.dismountPlane(); this.prevF = f; return; }
         if (this.player.interior) {
           const it = this.player.interior;
           const p = this.player.pos;
           if (Math.hypot(p.x - it.exit.x, p.z - it.exit.z) < 40) { this.exitInterior(); this.prevF = f; return; }
         } else {
+          const plane = this.nearestPlane();
+          if (plane) { this.mountPlane(plane); this.prevF = f; return; }
           const door = this.nearestDoor();
           if (door) { this.enterInterior(door); this.prevF = f; return; }
         }
@@ -882,6 +899,7 @@ const Game = {
     for (const c of this.cars) if (c.isPolice && !c.dead) blip(c.pos.x, c.pos.z, Math.floor(this.dayT * 2) % 2 ? '#ff4444' : '#4467ff');
     for (const f of (Police.foots || [])) if (!f.dead) blip(f.pos.x, f.pos.z, '#ff4444', 2.6);
     for (const [, rp] of Net.remotes) blip(rp.pos.x, rp.pos.z, '#ff9de2');
+    for (const pl of this.planes || []) blip(pl.pos.x, pl.pos.z, '#e8e8e8', 3);
     blip(City.spray.x, City.spray.z, '#39c0ff');
     blip(City.hospital.x, City.hospital.z, '#ffffff');
     for (const pk of this.pickups) blip(pk.pos.x, pk.pos.z, '#7be08a', 2.4);
@@ -950,6 +968,7 @@ const Game = {
         if (this.player.car.dead) this.player.damage(80);
       }
       if (this.player.car && this.player.health <= 0) this.wasted();
+      this.updatePlanes(dt);
       this.updateCamera(dt);
       this.updateHUD();
       this.dirtyHUD = true;
@@ -975,11 +994,68 @@ const Game = {
     if (el && el.style.display !== (on ? 'block' : 'none')) el.style.display = on ? 'block' : 'none';
   },
 
+  updatePlanes(dt) {
+    if (!this.planes) return;
+    for (const pl of this.planes) pl.update(dt);
+  },
+
+  nearestPlane() {
+    let best = null, bd = 60;
+    for (const pl of this.planes || []) {
+      if (pl.y > 4) continue;
+      const d = Math.hypot(pl.pos.x - this.player.pos.x, pl.pos.z - this.player.pos.z);
+      if (d < bd) { bd = d; best = pl; }
+    }
+    return best;
+  },
+
+  mountPlane(pl) {
+    const w = pl.worldOf(0, -20);
+    this.player.pos.set(w.x, 0, w.z);
+    this.player.plane = pl;
+    this.player.jz = pl.y + 21.3;
+    this.player.jv = 0;
+    this.toast("Monté sur l'avion ! Marche sur les ailes, Espace ou F pour sauter.");
+  },
+
+  dismountPlane() {
+    const pl = this.player.plane;
+    if (!pl) return;
+    const loc = pl.localOf(this.player.pos);
+    const surf = pl.topAt(loc.x, loc.z);
+    this.player.plane = null;
+    this.player.jv = 60;
+    if (surf === null) this.player.jz = Math.max(0, pl.y);
+    this.toast(pl.y > 10 ? "Saut de l'avion !" : "Descendu de l'avion.");
+  },
+
   updatePlayerWalk(dt) {
     this.player.angle = Input.look.yaw;
     const jump = Input.isDown('Space');
     if (jump && !this.prevSpace && (this.player.jz || 0) <= 0) this.player.jv = 250;
     this.prevSpace = jump;
+    if (this.player.plane) {
+      const pl = this.player.plane;
+      if (pl.y === undefined || !this.planes.includes(pl)) {
+        this.player.plane = null;
+      } else {
+        this.player.pos.x += pl.pos.x - pl.prevX;
+        this.player.pos.z += pl.pos.z - pl.prevZ;
+        const loc = pl.localOf(this.player.pos);
+        loc.x = Math.max(-48, Math.min(46, loc.x));
+        loc.z = Math.max(-54, Math.min(54, loc.z));
+        const w = pl.worldOf(loc.x, loc.z);
+        this.player.pos.x = w.x;
+        this.player.pos.z = w.z;
+        const surf = pl.topAt(loc.x, loc.z);
+        if (surf === null) {
+          this.player.plane = null;
+          this.player.jv = 0;
+        } else {
+          this.player.jz = pl.y + surf;
+        }
+      }
+    }
     this.player.jz = Math.max(0, (this.player.jz || 0) + (this.player.jv || 0) * dt);
     this.player.jv = this.player.jz > 0 ? (this.player.jv || 0) - 720 * dt : 0;
     const move = Input.axis('KeyS', 'KeyW') || Input.axis('ArrowDown', 'ArrowUp');
@@ -1008,6 +1084,10 @@ const Game = {
       this.player.legs[1].position.z = 0;
       this.player.arms[0].rotation.x = 0;
       this.player.arms[1].rotation.x = 0;
+    }
+    if (this.player.plane) {
+      this.player.group.position.set(this.player.pos.x, this.player.jz || 0, this.player.pos.z);
+      return;
     }
     if (!this.player.interior) City.clampToLand(this.player.pos, 8);
     City.collide(this.player.pos, 8);

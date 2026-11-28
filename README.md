@@ -63,6 +63,15 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   bâtiments visitables (chaque intérieur contient un type d'arme, réapprovisionnable
   après cooldown).
 - **Saut** : `Espace` à pied pour sauter.
+- **Aéroport international** sur une île au coin sud-est de la carte (pont d'accès
+  depuis la plage, à pied ou en voiture) : piste diagonale avec seuils, numéros
+  et feux de bord, terminal, tour de contrôle, hangar.
+- **3 avions de ligne** (livrées rouge/bleu/jaune) : décollage, montée,
+  **traversée en diagonale de toute la ville** jusqu'au coin opposé, demi-tour,
+  retour et atterrissage sur l'île — en boucle continue, phare clignotant et
+  train rentrant. **Monte dessus avec `F`** quand il est au sol : tu restes
+  accroché (tu ne tombes pas) et tu peux marcher sur le fuselage et les ailes
+  pendant tout le vol ; `Espace` ou `F` pour sauter de l'avion.
 - **Entrées de bâtiments** balisées : colonne de lumière orange pulsante + cadre
   doré + blip orange sur la minimap.
 - **Trafic pacifié** : les IA ralentissent bien avant le véhicule devant elles et
