@@ -15,11 +15,16 @@ const Missions = {
       update(obj, dt) {
         const pos = Game.playerPos();
         if (!obj.dest) {
-          if (Game.player.car) { obj.gotCar = true; obj.dest = Missions.randomNode(Game.playerPos()); Missions.setMarker(obj.dest, 0xffd23c); Game.toast('Bien. File à la destination !'); }
+          if (Game.player.car) {
+            obj.gotCar = true; obj.dest = Missions.randomNode(Game.playerPos(), 2200);
+            Missions.setMarker(obj.dest, 0xffd23c);
+            Game.toast('Bien. File à la destination — suis la colonne jaune et la flèche en haut !');
+          }
           else obj.setObjective('Vole une voiture pour commencer la livraison.');
         } else {
-          obj.setObjective('Livraison : rejoins le marqueur — ' + Math.ceil(obj.timer) + 's');
-          if (Game.player.car && pos.distanceTo(new THREE.Vector3(obj.dest.x, 0, obj.dest.z)) < 55) return 'done';
+          const dd = Math.round(pos.distanceTo(new THREE.Vector3(obj.dest.x, 0, obj.dest.z)) / 13);
+          obj.setObjective('Livraison : ' + dd + ' m — ' + Math.ceil(obj.timer) + 's');
+          if (Game.player.car && pos.distanceTo(new THREE.Vector3(obj.dest.x, 0, obj.dest.z)) < 75) return 'done';
         }
         return null;
       }
@@ -43,10 +48,11 @@ const Missions = {
       update(obj, dt) {
         if (!Game.player.car) return 'fail-noCar';
         obj.timer -= dt;
-        obj.setObjective('Checkpoint ' + (obj.cpIndex + 1) + '/6 — ' + Math.ceil(obj.timer) + 's');
         const cp = obj.cps[obj.cpIndex];
         const pos = Game.playerPos();
-        if (pos.distanceTo(new THREE.Vector3(cp.x, 0, cp.z)) < 55) {
+        const cd = Math.round(pos.distanceTo(new THREE.Vector3(cp.x, 0, cp.z)) / 13);
+        obj.setObjective('Checkpoint ' + (obj.cpIndex + 1) + '/6 : ' + cd + ' m — ' + Math.ceil(obj.timer) + 's');
+        if (pos.distanceTo(new THREE.Vector3(cp.x, 0, cp.z)) < 75) {
           obj.cpIndex++; obj.timer += 6; Sound.ding();
           if (obj.cpIndex >= obj.cps.length) return 'done';
           Missions.setMarker(obj.cps[obj.cpIndex], 0x37d067);
@@ -123,27 +129,43 @@ const Missions = {
       new THREE.CylinderGeometry(16, 16, 60, 12),
       new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4, depthWrite: false })
     );
+    const beamMk = (color) => {
+      const b = new THREE.Mesh(
+        new THREE.CylinderGeometry(10, 18, 900, 12, 1, true),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide })
+      );
+      b.position.y = 450;
+      return b;
+    };
     this.startMarker = mk(0xffd23c);
     this.startMarker.position.set(this.DEFINITIONS[0].startPt.x, 30, this.DEFINITIONS[0].startPt.z);
     scene.add(this.startMarker);
+    this.startBeam = beamMk(0xffd23c);
+    this.startBeam.position.x = this.DEFINITIONS[0].startPt.x;
+    this.startBeam.position.z = this.DEFINITIONS[0].startPt.z;
+    scene.add(this.startBeam);
     this.setObjective = (t) => Game.setObjective(t);
     this.marker = mk(0xffd23c); this.marker.visible = false; scene.add(this.marker);
+    this.beam = beamMk(0xffd23c); this.beam.visible = false; scene.add(this.beam);
   },
 
   setMarker(pos, color) {
     this.marker.visible = true;
     this.marker.material.color.setHex(color);
     this.marker.position.set(pos.x, 30, pos.z);
+    this.beam.visible = true;
+    this.beam.material.color.setHex(color);
+    this.beam.position.set(pos.x, 450, pos.z);
   },
 
-  randomNode(maxDistFrom) {
-    for (let i = 0; i < 30; i++) {
+  randomNode(maxDistFrom, maxD) {
+    for (let i = 0; i < 40; i++) {
       const x = WORLD.Xs[Math.floor(Math.random() * WORLD.Xs.length)];
       const z = WORLD.Ys[Math.floor(Math.random() * WORLD.Ys.length)];
       const d = Math.hypot(x - maxDistFrom.x, z - maxDistFrom.z);
-      if (d > 700) return { x, z };
+      if (d > 700 && (!maxD || d < maxD)) return { x, z, d };
     }
-    return { x: WORLD.Xs[0], z: WORLD.Ys[0] };
+    return { x: WORLD.Xs[Math.floor(WORLD.Xs.length / 2)], z: WORLD.Ys[Math.floor(WORLD.Ys.length / 2)], d: 700 };
   },
 
   cleanup() {
@@ -151,6 +173,7 @@ const Missions = {
     for (const p of this.packages) Game.group.remove(p.mesh);
     this.packages = [];
     this.marker.visible = false;
+    this.beam.visible = false;
   },
 
   reset() {
@@ -159,6 +182,8 @@ const Missions = {
     const d = this.DEFINITIONS[this.idx % this.DEFINITIONS.length];
     this.startMarker.position.set(d.startPt.x, 30, d.startPt.z);
     this.startMarker.visible = true;
+    this.startBeam.position.set(d.startPt.x, 450, d.startPt.z);
+    this.startBeam.visible = true;
     this.timer = 0;
     Game.setObjective('');
   },
@@ -186,19 +211,25 @@ const Missions = {
     this.def = this.DEFINITIONS[this.idx % this.DEFINITIONS.length];
     this.state = 'running';
     this.startMarker.visible = false;
+    this.startBeam.visible = false;
     Game.setObjective(this.def.brief);
     Game.banner(this.def.name);
     this.def.init(this);
   },
 
   animate(dt) {
+    const pulse = 0.14 + 0.1 * (0.5 + 0.5 * Math.sin(performance.now() / 300));
     if (this.startMarker && this.startMarker.visible) {
       this.startMarker.rotation.y += dt * 1.2;
       this.startMarker.position.y = 30 + Math.sin(performance.now() / 400) * 5;
+      this.startBeam.material.opacity = pulse;
+      this.startBeam.rotation.y -= dt * 0.5;
     }
     if (this.marker && this.marker.visible) {
       this.marker.rotation.y -= dt * 1.6;
       this.marker.position.y = 30 + Math.sin(performance.now() / 350) * 5;
+      this.beam.material.opacity = pulse;
+      this.beam.rotation.y += dt * 0.5;
     }
   },
 

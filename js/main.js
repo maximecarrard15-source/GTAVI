@@ -165,6 +165,7 @@ const Game = {
       weapon: document.getElementById('weapon'), speedo: document.getElementById('speedo'),
       clock: document.getElementById('clock'), toast: document.getElementById('toast'),
       objective: document.getElementById('objective'), wasted: document.getElementById('wasted'),
+      nav: document.getElementById('nav'), navArrow: document.getElementById('navArrow'), navDist: document.getElementById('navDist'),
       wastedTxt: document.querySelector('.wastedTxt'), missionDone: document.getElementById('missionDone')
     };
   },
@@ -269,6 +270,27 @@ const Game = {
     this._toastT = setTimeout(() => t.classList.remove('show'), 2400);
   },
   setObjective(t) { if (this.el) this.el.objective.textContent = ''; document.getElementById('objective').textContent = t; },
+
+  updateNav() {
+    const nav = this.el && this.el.nav;
+    if (!nav) return;
+    let tgt = null;
+    if (Missions.state === 'running' && Missions.marker && Missions.marker.visible) tgt = Missions.marker.position;
+    else if (Missions.state === 'idle' && Missions.startMarker && Missions.startMarker.visible) tgt = Missions.startMarker.position;
+    if (!tgt || this.state !== 'playing' || this.player.deadState) { nav.classList.remove('on'); return; }
+    const p = this.playerPos();
+    const dx = tgt.x - p.x, dz = tgt.z - p.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 70) { nav.classList.remove('on'); return; }
+    nav.classList.add('on');
+    const dir = new THREE.Vector3();
+    this.camera.getWorldDirection(dir);
+    let rel = Math.atan2(dz, dx) - Math.atan2(dir.z, dir.x);
+    while (rel > Math.PI) rel -= 2 * Math.PI;
+    while (rel < -Math.PI) rel += 2 * Math.PI;
+    this.el.navArrow.style.transform = 'rotate(' + rel.toFixed(3) + 'rad)';
+    this.el.navDist.textContent = Math.round(dist / 13) + ' m';
+  },
 
   sparks(pos, n, color) {
     for (let i = 0; i < n; i++) {
@@ -843,8 +865,14 @@ const Game = {
       g.fillStyle = color;
       g.beginPath(); g.arc(x * sc, z * sc, r || 3.4, 0, 7); g.fill();
     };
-    if (Missions.state === 'idle') blip(Missions.startMarker.position.x, Missions.startMarker.position.z, '#ffd23c');
-    else if (Missions.marker.visible) blip(Missions.marker.position.x, Missions.marker.position.z, '#ffd23c');
+    const pr = 4.6 + Math.sin(performance.now() / 260) * 1.4;
+    const missionBlip = (x, z, col) => {
+      g.strokeStyle = '#ffffff'; g.lineWidth = 1.6;
+      g.beginPath(); g.arc(x * sc, z * sc, pr + 2.6, 0, 7); g.stroke();
+      blip(x, z, col, pr);
+    };
+    if (Missions.state === 'idle') missionBlip(Missions.startMarker.position.x, Missions.startMarker.position.z, '#ffd23c');
+    else if (Missions.marker.visible) missionBlip(Missions.marker.position.x, Missions.marker.position.z, '#ffd23c');
     for (const it2 of City.interiors) blip(it2.door.x, it2.door.z, '#ffa726', 3);
     for (const c of this.cars) if (c.isPolice && !c.dead) blip(c.pos.x, c.pos.z, Math.floor(this.dayT * 2) % 2 ? '#ff4444' : '#4467ff');
     for (const f of (Police.foots || [])) if (!f.dead) blip(f.pos.x, f.pos.z, '#ff4444', 2.6);
@@ -921,6 +949,7 @@ const Game = {
       this.updateHUD();
       this.dirtyHUD = true;
       this.drawMinimap();
+      this.updateNav();
       if (this.player.group) {
         this.player.group.rotation.y = -this.player.angle;
         this.player.group.visible = !this.player.car && this.camMode !== 1;

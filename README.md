@@ -69,9 +69,14 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   ne s'entre-détruisent plus (ni collisions, ni explosions en chaîne) ; les poteaux
   de feux tricolores ont été retirés des carrefours.
 - **4 missions** : Livraison Express, Vice Rush (course à checkpoints),
-  Chasseur de primes, Contrebande — marqueurs de mission tournants et flottants,
-  avec indice « entre dans la colonne jaune ! » à l'approche (rayon d'entrée
-  élargi pour être facile à trouver).
+  Chasseur de primes, Contrebande.
+- **Navigation de mission impossible à rater** : chaque marqueur (départ,
+  destination, checkpoints, colis) est surmonté d'une **colonne de lumière
+  géante pulsante** visible de très loin ; une **flèche de direction + distance
+  en mètres** s'affiche en haut de l'écran et tourne vers l'objectif ; blip
+  blanc pulsant sur la minimap ; distance affichée en direct dans l'objectif.
+  La destination de livraison est choisie à distance raisonnable (< 170 m) et
+  la zone d'arrivée a été élargie.
 - **Pay'n'Spray** ($300) pour effacer le wanted, hôpital pour respawn.
 - **Pickups** : santé, armure, cash, munitions SMG.
 - **Tchat + commandes** : `T` ouvre le tchat (solo et multi) — `/time set day`,
