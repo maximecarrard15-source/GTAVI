@@ -70,8 +70,14 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   **traversée en diagonale de toute la ville** jusqu'au coin opposé, demi-tour,
   retour et atterrissage sur l'île — en boucle continue, phare clignotant et
   train rentrant. **Monte dessus avec `F`** quand il est au sol : tu restes
-  accroché (tu ne tombes pas) et tu peux marcher sur le fuselage et les ailes
-  pendant tout le vol ; `Espace` ou `F` pour sauter de l'avion.
+  accroché (tu ne tombes **jamais** — les bords te retiennent, tu n'es forcé
+  de descendre que si tu sautes) et tu peux marcher sur tout le fuselage et
+  les ailes pendant le vol.
+- **Pilotage d'avion** : une fois à bord, appuie sur **`R`** pour prendre les
+  commandes — `W`/`S` : gaz, `A`/`D` : virage (avec inclinaison), `Espace` :
+  monter, `Maj` : descendre. Rappuie sur `R` (ou saute) pour rendre le contrôle :
+  le pilote automatique reprend et ramène l'avion à l'aéroport tout seul.
+  Tu peux aussi rester simplement passager pendant que l'IA vole.
 - **Entrées de bâtiments** balisées : colonne de lumière orange pulsante + cadre
   doré + blip orange sur la minimap.
 - **Trafic pacifié** : les IA ralentissent bien avant le véhicule devant elles et

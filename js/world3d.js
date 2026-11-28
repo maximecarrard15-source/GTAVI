@@ -618,7 +618,7 @@ const City = {
     const runway = new THREE.Mesh(new THREE.PlaneGeometry(72, rwLen + 60), new THREE.MeshLambertMaterial({ map: rwTex }));
     runway.rotation.x = -Math.PI / 2;
     runway.rotation.z = -ang;
-    runway.position.set((ap.rwA.x + ap.rwB.x) / 2, 0.72, (ap.rwA.z + ap.rwB.z) / 2);
+    runway.position.set((ap.rwA.x + ap.rwB.x) / 2, 0.85, (ap.rwA.z + ap.rwB.z) / 2);
     runway.receiveShadow = true;
     this.group.add(runway);
     this.rwAngle = ang;

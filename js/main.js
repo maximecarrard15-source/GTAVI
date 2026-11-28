@@ -996,6 +996,20 @@ const Game = {
 
   updatePlanes(dt) {
     if (!this.planes) return;
+    const r = Input.isDown('KeyR');
+    if (r && !this.prevR && this.player.plane && this.state === 'playing' && !this.player.deadState) {
+      const pl = this.player.plane;
+      if (this.player.pilot === pl) {
+        pl.resumeAI();
+        this.player.pilot = null;
+        this.toast("Pilote automatique réengagé — l'avion repart tout seul.");
+      } else {
+        pl.manual = true;
+        this.player.pilot = pl;
+        this.toast('Tu pilotes ! W/S : gaz — A/D : tourner — Espace : monter — Maj : descendre — R : rendre le contrôle.');
+      }
+    }
+    this.prevR = r;
     for (const pl of this.planes) pl.update(dt);
   },
 
@@ -1010,12 +1024,13 @@ const Game = {
   },
 
   mountPlane(pl) {
-    const w = pl.worldOf(0, -20);
+    const w = pl.worldOf(0, -16);
     this.player.pos.set(w.x, 0, w.z);
     this.player.plane = pl;
     this.player.jz = pl.y + 21.3;
     this.player.jv = 0;
-    this.toast("Monté sur l'avion ! Marche sur les ailes, Espace ou F pour sauter.");
+    this.player.pilot = null;
+    this.toast("À bord ! Espace : sauter — R : prendre le contrôle — sinon l'avion continue tout seul.");
   },
 
   dismountPlane() {
@@ -1024,6 +1039,10 @@ const Game = {
     const loc = pl.localOf(this.player.pos);
     const surf = pl.topAt(loc.x, loc.z);
     this.player.plane = null;
+    if (this.player.pilot === pl) {
+      pl.resumeAI();
+      this.player.pilot = null;
+    }
     this.player.jv = 60;
     if (surf === null) this.player.jz = Math.max(0, pl.y);
     this.toast(pl.y > 10 ? "Saut de l'avion !" : "Descendu de l'avion.");
@@ -1032,34 +1051,40 @@ const Game = {
   updatePlayerWalk(dt) {
     this.player.angle = Input.look.yaw;
     const jump = Input.isDown('Space');
-    if (jump && !this.prevSpace && (this.player.jz || 0) <= 0) this.player.jv = 250;
+    if (jump && !this.prevSpace) {
+      if (this.player.plane && !this.player.pilot) this.dismountPlane();
+      else if ((this.player.jz || 0) <= 0) this.player.jv = 250;
+    }
     this.prevSpace = jump;
     if (this.player.plane) {
       const pl = this.player.plane;
       if (pl.y === undefined || !this.planes.includes(pl)) {
         this.player.plane = null;
+        this.player.pilot = null;
       } else {
         this.player.pos.x += pl.pos.x - pl.prevX;
         this.player.pos.z += pl.pos.z - pl.prevZ;
-        const loc = pl.localOf(this.player.pos);
-        loc.x = Math.max(-48, Math.min(46, loc.x));
-        loc.z = Math.max(-54, Math.min(54, loc.z));
+        const loc = pl.clampWalk(pl.localOf(this.player.pos));
         const w = pl.worldOf(loc.x, loc.z);
         this.player.pos.x = w.x;
         this.player.pos.z = w.z;
         const surf = pl.topAt(loc.x, loc.z);
         if (surf === null) {
           this.player.plane = null;
+          this.player.pilot = null;
           this.player.jv = 0;
         } else {
-          this.player.jz = pl.y + surf;
+          const target = pl.y + surf * Math.cos(pl.pitch || 0) + loc.x * Math.sin(pl.pitch || 0);
+          this.player.jz += (target - this.player.jz) * Math.min(1, dt * 14);
+          this.player.jv = 0;
         }
       }
     }
     this.player.jz = Math.max(0, (this.player.jz || 0) + (this.player.jv || 0) * dt);
     this.player.jv = this.player.jz > 0 ? (this.player.jv || 0) - 720 * dt : 0;
-    const move = Input.axis('KeyS', 'KeyW') || Input.axis('ArrowDown', 'ArrowUp');
-    const strafe = Input.axis('KeyA', 'KeyD') || Input.axis('ArrowLeft', 'ArrowRight');
+    const pilot = this.player.plane && this.player.pilot;
+    const move = pilot ? 0 : (Input.axis('KeyS', 'KeyW') || Input.axis('ArrowDown', 'ArrowUp'));
+    const strafe = pilot ? 0 : (Input.axis('KeyA', 'KeyD') || Input.axis('ArrowLeft', 'ArrowRight'));
     const spd = 150;
     if (move !== 0 || strafe !== 0) {
       const fx = Math.cos(Input.look.yaw), fz = Math.sin(Input.look.yaw);

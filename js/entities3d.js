@@ -559,6 +559,8 @@ class Plane {
     this.phase = 'wait';
     this.phaseT = 4 + i * 7;
     this.turnT = 0;
+    this.manual = false;
+    this.bank = 0;
     this.group = new THREE.Group();
     this.group.rotation.order = 'YXZ';
     const body = new THREE.MeshPhongMaterial({ color: 0xf2f4f6, shininess: 110, specular: 0xbbccdd });
@@ -568,26 +570,24 @@ class Plane {
     const fus = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 84, 12), body);
     fus.rotation.z = Math.PI / 2;
     fus.position.y = 26;
-    fus.castShadow = true;
     this.group.add(fus);
     const nose = new THREE.Mesh(new THREE.SphereGeometry(6, 12, 9), body);
     nose.position.set(42, 26, 0);
     this.group.add(nose);
     const stripeL = new THREE.Mesh(new THREE.BoxGeometry(74, 3.4, 0.7), acc);
-    stripeL.position.set(0, 29, 6);
+    stripeL.position.set(0, 29, 6.9);
     this.group.add(stripeL);
     const stripeR = stripeL.clone();
-    stripeR.position.z = -6;
+    stripeR.position.z = -6.9;
     this.group.add(stripeR);
     const cockpit = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 9.5), glass);
-    cockpit.position.set(35, 33, 0);
+    cockpit.position.set(35, 33.2, 0);
     this.group.add(cockpit);
     const wing = new THREE.Mesh(new THREE.BoxGeometry(27, 2.6, 112), body);
     wing.position.set(2, 20, 0);
-    wing.castShadow = true;
     this.group.add(wing);
     const wingStripe = new THREE.Mesh(new THREE.BoxGeometry(27, 1, 6), acc);
-    wingStripe.position.set(2, 21.4, 0);
+    wingStripe.position.set(2, 21.9, 0);
     this.group.add(wingStripe);
     for (const ez of [-28, 28]) {
       const eng = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 4.6, 15, 10), dark);
@@ -619,6 +619,7 @@ class Plane {
     this.beacon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 6, 5), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
     this.beacon.position.set(0, 33.5, 0);
     this.group.add(this.beacon);
+    this.group.traverse(o => { o.castShadow = false; });
   }
 
   localOf(p) {
@@ -633,9 +634,16 @@ class Plane {
   }
 
   topAt(lx, lz) {
-    if (Math.abs(lx) < 13 && Math.abs(lz) < 6.5) return 32.5;
-    if (lx > -16 && lx < 15 && Math.abs(lz) < 56) return 21.3;
+    if (Math.abs(lz) < 6.5 && lx > -42 && lx < 46) return 32.5;
+    if (Math.abs(lz) < 56 && lx > -16 && lx < 15) return 21.3;
     return null;
+  }
+
+  clampWalk(loc) {
+    loc.z = Math.max(-55, Math.min(55, loc.z));
+    if (Math.abs(loc.z) < 6.5) loc.x = Math.max(-41, Math.min(45, loc.x));
+    else loc.x = Math.max(-15, Math.min(14, loc.x));
+    return loc;
   }
 
   move(dt) {
@@ -648,7 +656,9 @@ class Plane {
     this.prevX = this.pos.x;
     this.prevZ = this.pos.z;
     let targetPitch = 0;
-    if (this.phase === 'wait') {
+    if (this.manual) {
+      targetPitch = this.manualUpdate(dt);
+    } else if (this.phase === 'wait') {
       this.speed = 0;
       this.phaseT -= dt;
       if (this.phaseT <= 0) this.phase = 'takeoff';
@@ -730,12 +740,47 @@ class Plane {
       }
     }
     this.pitch += (targetPitch - this.pitch) * Math.min(1, dt * 3);
+    if (!this.manual) this.bank += (0 - this.bank) * Math.min(1, dt * 3);
     this.group.position.set(this.pos.x, this.y, this.pos.z);
     this.group.rotation.y = -this.angle;
     this.group.rotation.z = this.pitch;
+    this.group.rotation.x = this.bank;
     const onGround = this.y < 2;
     for (const g2 of this.gear) g2.visible = onGround;
     this.beacon.visible = Math.floor(performance.now() / 450) % 2 === 0;
+  }
+
+  manualUpdate(dt) {
+    const thrust = Input.axis('KeyS', 'KeyW') || Input.axis('ArrowDown', 'ArrowUp');
+    const turn = Input.axis('KeyA', 'KeyD') || Input.axis('ArrowLeft', 'ArrowRight');
+    this.speed = Math.max(0, Math.min(520, this.speed + thrust * 110 * dt));
+    if (thrust === 0 && this.y <= 0.01) this.speed = Math.max(0, this.speed - 80 * dt);
+    this.angle += turn * (this.y <= 0.01 ? 1.0 : 1.6) * dt;
+    this.bank += (turn * 0.45 - this.bank) * Math.min(1, dt * 4);
+    let vy = 0;
+    if (Input.isDown('Space')) vy = 210;
+    else if (Input.isDown('ShiftLeft') || Input.isDown('ShiftRight')) vy = -210;
+    this.y = Math.max(0, Math.min(1100, this.y + vy * dt));
+    this.move(dt);
+    this.pos.x = Math.max(120, Math.min(WORLD.W - 80, this.pos.x));
+    this.pos.z = Math.max(120, Math.min(WORLD.H - 80, this.pos.z));
+    if (this.y <= 0.01) this.y = 0;
+    return this.y > 0 ? (vy > 0 ? 0.25 : vy < 0 ? -0.18 : 0.06) : 0;
+  }
+
+  resumeAI() {
+    this.manual = false;
+    this.bank = 0;
+    if (this.y > 5) {
+      this.phase = 'back';
+    } else {
+      this.phase = 'groundturn';
+      this.turnT = 0;
+    }
+  }
+
+  surfaceY(lx) {
+    return this.y + 32.5 * Math.cos(this.pitch) + lx * Math.sin(this.pitch);
   }
 
   get baseAngle() {
