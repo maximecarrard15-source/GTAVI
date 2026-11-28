@@ -41,7 +41,11 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   les parcs, feux tricolores, voitures garées le long des trottoirs (toutes
   volables).
 - **5 types de véhicules** (Cheetah GTS, Regalia, Taxi Vice, Bobcat, VCPD Cruiser)
-  avec physique de drift, dégâts, fumée et explosions en chaîne.
+  avec physique de drift, dégâts, fumée et explosions en chaîne — désormais très
+  détaillés et reconnaissables : poignées de porte chromées, calandres avant,
+  plaques, antennes (sans toit de pickup), pots d'échappement chromés avec
+  embouts sombres, galeries de toit, siderails et roue de secours spécifiques
+  à chaque type.
 - **Trafic et piétons** avec IA (conduite à droite, intersections, panique),
   piétons animés (jambes/bras), rétroviseurs, jantes et plaques sur les véhicules.
 - **Vue 1ʳᵉ / 3ᵉ personne** : touche `V` pour basculer (à pied et au volant).
@@ -50,8 +54,10 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   caisse d'argent à récolter — et une planque parfaite pour semer la police.
 - **Mort** : le personnage s'effondre à plat au sol (animé) avant l'écran WASTED.
 - **Police VCPD** : 5 étoiles de recherche, poursuites, gyrophare + sirène,
-  tirs d'agents, **policiers à pied armés** dès 2 étoiles (ils te courent dessus
-  et tirent, et peuvent aussi te placer une arrestation), BUSTED et WASTED.
+  tirs d'agents, **patrouilles ambiantes** — 2 voitures de police roulent
+  normalement dans la ville même à 0 étoile et deviennent hostiles dès que tu
+  commets un crime — **policiers à pied armés** dès 2 étoiles (ils te courent
+  dessus et tirent, et peuvent aussi te placer une arrestation), BUSTED et WASTED.
 - **Arsenal** : Pistolet, SMG, Fusil à pompe, Sniper, Mitrailleuse — touches
   `1`/`2`/`3`/`4`/`5` pour changer d'arme ; caisses d'armes dissimulées dans les
   bâtiments visitables (chaque intérieur contient un type d'arme, réapprovisionnable
@@ -63,7 +69,9 @@ Ou active GitHub Pages (`Settings > Pages > branche main`) pour y jouer en ligne
   ne s'entre-détruisent plus (ni collisions, ni explosions en chaîne) ; les poteaux
   de feux tricolores ont été retirés des carrefours.
 - **4 missions** : Livraison Express, Vice Rush (course à checkpoints),
-  Chasseur de primes, Contrebande.
+  Chasseur de primes, Contrebande — marqueurs de mission tournants et flottants,
+  avec indice « entre dans la colonne jaune ! » à l'approche (rayon d'entrée
+  élargi pour être facile à trouver).
 - **Pay'n'Spray** ($300) pour effacer le wanted, hôpital pour respawn.
 - **Pickups** : santé, armure, cash, munitions SMG.
 - **Tchat + commandes** : `T` ouvre le tchat (solo et multi) — `/time set day`,
@@ -84,11 +92,15 @@ aucun serveur de jeu à déployer :
 
 Détails techniques (`js/net.js`) :
 - Topologie étoile : l'hôte fait tourner la simulation (trafic, piétons, police,
-  missions, dégâts) et diffuse 15 snapshots/s ; les clients prédisent localement
+  dégâts) et diffuse 15 snapshots/s ; les clients prédisent localement
   leur propre voiture.
-- Chat relayé par l'hôte, messages système (arrivées/départs).
+- **Chat relayé par l'hôte**, messages système (arrivées/départs).
 - Nomme-tags au-dessus des autres joueurs, blips violets sur la minimap.
-- Seul l'hôte termine les missions pour le moment.
+- **Missions pour tous** : chaque joueur (hôte ou client) lance et termine
+  ses propres missions localement.
+- **PvP** : les joueurs peuvent se tirer dessus — les impacts entre joueurs sont
+  détectés par l'hôte et synchronisés à tous (dégâts + toast « Touché par un
+  joueur ! »).
 
 ## 🧱 Stack
 

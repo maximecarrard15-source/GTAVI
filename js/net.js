@@ -166,6 +166,7 @@ const Net = {
       const rp = new RemotePlayer(conn._name);
       this.remotes.set(conn._pid, rp);
       Game.group.add(rp.group);
+      conn.send({ t: 'welcome', id: conn._pid });
       this.system(conn._name + ' a rejoint la partie !');
       Sound.ding();
       this.chip();
@@ -203,6 +204,7 @@ const Net = {
   },
 
   clientData(d) {
+    if (d.t === 'welcome') { this.myId = d.id; return; }
     if (!d || !d.t) return;
     if (d.t === 'snap') {
       if (!this._purged) {
@@ -253,7 +255,7 @@ const Net = {
         }
         let rp = this.remotes.get(pe.id);
         if (!rp) { rp = new RemotePlayer(pe.n || 'Joueur'); this.remotes.set(pe.id, rp); Game.group.add(rp.group); }
-        rp.tPos.set(pe.x, 0, pe.z); rp.tAngle = pe.a; rp.group.visible = pe.ct === null;
+        rp.tPos.set(pe.x, 0, pe.z); rp.tAngle = pe.a; rp.group.visible = pe.ct === null; rp.inCar = pe.ct !== null;
       }
       for (const [id, rp] of [...this.remotes]) {
         if (!d.pl.find(p => p.id === id)) {
@@ -266,8 +268,6 @@ const Net = {
       Game.dayT = d.t;
       this.applyMarker(Game.sprayMarker, d.sp);
       this.applyMarker(Game.hospitalMarker, d.hp2);
-      if (Missions.startMarker) this.applyMarker(Missions.startMarker, d.sm);
-      if (Missions.marker) this.applyMarker(Missions.marker, d.mk);
       const pkSeen = new Set();
       for (const pk of d.pks) {
         pkSeen.add(pk.k + '_' + Math.round(pk.x) + '_' + Math.round(pk.z));
@@ -360,6 +360,9 @@ const Net = {
         if (d.k2 === 'armor') { Game.player.armor = Math.min(100, Game.player.armor + 50); Game.toast('+50 Armure'); }
         if (d.k2 === 'cash') { Game.player.money += d.v; Game.toast('+$' + d.v); }
         if (d.k2 === 'smg') { Game.player.weapons.smg.ammo += 90; Game.player.weapon = 'smg'; Game.toast('SMG +90 balles'); }
+        if (d.k === 'phit') {
+          if (d.id === this.myId) { Game.player.damage(d.d); Game.dirtyHUD = true; Game.toast('Touché par un joueur !', true); }
+        }
         Sound.ding(); Game.dirtyHUD = true;
       }
     }
@@ -464,6 +467,11 @@ const Net = {
     }
     let i = 0;
     for (const [, mesh] of this.pickupGhosts) mesh.position.y = 7 + Math.sin(performance.now() / 300 + i++) * 2;
+  },
+
+  playerHit(pid, dmg) {
+    if (this.mode !== 'host') return;
+    this.broadcast({ t: 'ev', k: 'phit', id: pid, d: dmg });
   },
 
   clientEnterExit(action) {

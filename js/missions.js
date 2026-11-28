@@ -166,8 +166,10 @@ const Missions = {
   update(dt) {
     const p = Game.playerPos();
     if (this.state === 'idle') {
-      const d = p.distanceTo(this.startMarker.position) - 30;
-      if (d < 30) this.start();
+      const d = p.distanceTo(this.startMarker.position);
+      if (d < 90) this.start();
+      else if (d < 300 && !this._hinted) { this._hinted = true; Game.toast('📦 Mission livraison ici — entre dans la colonne jaune !'); }
+      else if (d >= 300) this._hinted = false;
     } else if (this.state === 'running') {
       if (this.targetPed && !this.targetPed.dead) this.targetPed.update(dt);
       const res = this.def.update(this, dt);
@@ -187,6 +189,17 @@ const Missions = {
     Game.setObjective(this.def.brief);
     Game.banner(this.def.name);
     this.def.init(this);
+  },
+
+  animate(dt) {
+    if (this.startMarker && this.startMarker.visible) {
+      this.startMarker.rotation.y += dt * 1.2;
+      this.startMarker.position.y = 30 + Math.sin(performance.now() / 400) * 5;
+    }
+    if (this.marker && this.marker.visible) {
+      this.marker.rotation.y -= dt * 1.6;
+      this.marker.position.y = 30 + Math.sin(performance.now() / 350) * 5;
+    }
   },
 
   complete() {

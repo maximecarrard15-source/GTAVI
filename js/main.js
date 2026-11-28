@@ -333,6 +333,19 @@ const Game = {
         }
         if (!hit) for (const pd of this.peds) if (!pd.dead && Math.hypot(pd.pos.x - nx, pd.pos.z - nz) < 7) { pd.die(true); pd.scare(nx, nz); this.sparks(new THREE.Vector3(nx, 0, nz), 4, 0xc33); hit = true; Police.crime(1.2); break; }
         if (!hit) for (const f of (Police.foots || [])) if (!f.dead && Math.hypot(f.pos.x - nx, f.pos.z - nz) < 8) { f.die(true); this.sparks(new THREE.Vector3(nx, 0, nz), 4, 0xc33); hit = true; break; }
+        if (!hit) for (const [pid, rp] of Net.remotes) {
+          if (rp.inCar) continue;
+          if (Math.hypot(rp.pos.x - nx, rp.pos.z - nz) < 10) {
+            this.sparks(new THREE.Vector3(nx, 0, nz), 4, 0xc33);
+            Net.playerHit(pid, b.dmg);
+            Police.crime(1);
+            hit = true; break;
+          }
+        }
+        if (!hit && !this.player.car && !this.player.deadState && Net.mode === 'host') {
+          const pp = this.playerPos();
+          if (Math.hypot(pp.x - nx, pp.z - nz) < 10) { this.player.damage(b.dmg); this.dirtyHUD = true; hit = true; }
+        }
         if (!hit && Missions.targetPed && Missions.targetPed.pos.distanceTo(new THREE.Vector3(nx, 0, nz)) < 8) { Missions.targetPed.scare(nx, nz); this.sparks(new THREE.Vector3(nx, 0, nz), 3, 0xc33); }
       }
       if (!hit && b.byCop) {
@@ -874,8 +887,9 @@ const Game = {
       }
       this.tryEnterExit();
       const client = Net.mode === 'client';
+      Missions.update(dt);
+      Missions.animate(dt);
       if (!client) {
-        Missions.update(dt);
         Police.update(dt, this.nightFactor() > 0.5);
         this.updatePeds(dt);
         this.bulletUpdate(dt);

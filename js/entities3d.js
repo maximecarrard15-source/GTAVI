@@ -144,6 +144,24 @@ class Car {
       this.bar2.position.set(0, 25, 4); this.group.add(this.bar2);
     }
 
+    for (const hz of [-t.wid / 2 - 0.35, t.wid / 2 + 0.35]) for (const hx of [t.len * 0.16, -t.len * 0.14]) {
+      box(3.4, 1.3, 0.9, chromeMat, hx, 11.5, hz);
+    }
+    box(1.2, 4, t.wid * 0.52, new THREE.MeshPhongMaterial({ color: 0x1c2126, shininess: 70 }), t.len / 2 + 0.3, 8.6, 0);
+    if (type !== 'pickup') {
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 10, 4), new THREE.MeshLambertMaterial({ color: 0x17191d }));
+      ant.position.set(-t.len / 2 + 6, 27, -t.wid / 4); this.group.add(ant);
+      const antBall = new THREE.Mesh(new THREE.SphereGeometry(0.7, 6, 5), new THREE.MeshLambertMaterial({ color: 0xd0d3da }));
+      antBall.position.set(-t.len / 2 + 6, 32.2, -t.wid / 4); this.group.add(antBall);
+    }
+    const exh = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.2, 4, 8), chromeMat);
+    exh.rotation.z = Math.PI / 2;
+    exh.position.set(-t.len / 2 - 1.4, 6.2, type === 'sport' ? t.wid / 4 : -t.wid / 4);
+    this.group.add(exh);
+    const exhCap = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 0.8, 8), new THREE.MeshPhongMaterial({ color: 0x0d0f12, shininess: 40 }));
+    exhCap.rotation.z = Math.PI / 2; exhCap.position.set(-t.len / 2 - 3.4, 6.2, exh.position.z);
+    this.group.add(exhCap);
+
     const wr = type === 'pickup' ? 5.3 : (type === 'sport' ? 4.1 : 4.6);
     const wwd = type === 'pickup' ? 4.2 : 3.4;
     const wheelGeo = new THREE.CylinderGeometry(wr, wr, wwd, 14);

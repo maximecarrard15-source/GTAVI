@@ -47,6 +47,20 @@ const Police = {
     if (this.wanted === 0 && this.heat > 0) this.heat = Math.max(0, this.heat - dt * 0.25);
     if (this.wanted >= 1 && this.wanted < 5 && close) this.heat += dt * 0.25;
 
+    if (this.wanted === 0) {
+      const patrols = this.list.filter(c => c.driver === 'patrol' && !c.dead).length;
+      if (patrols < 2) {
+        const spot = this.randomRoadSpot(1000);
+        if (spot) {
+          const cop = new Car('police', spot.x, spot.z, Math.floor(Math.random() * 4) % 2 === 0 ? 0 : Math.PI);
+          cop.driver = 'patrol';
+          const xi = WORLD.Xs.indexOf(WORLD.Xs.reduce((a, b) => Math.abs(b - spot.x) < Math.abs(a - spot.x) ? b : a));
+          cop.node = [xi, Math.max(0, Math.min(WORLD.Ys.length - 1, Math.floor(spot.z / 450)))];
+          cop.dir = Math.random() < 0.5 ? 1 : 3;
+          Game.addCar(cop); this.list.push(cop);
+        }
+      }
+    }
     const want = Game.player.deadState ? 0 : Math.min(5, this.wanted);
     const alive = this.list.filter(c => !c.dead).length;
     if (alive < want * 2 + (want >= 4 ? 2 : 0)) {
@@ -80,11 +94,12 @@ const Police = {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const c = this.list[i];
       if (c.dead) { this.list.splice(i, 1); continue; }
-      if (this.wanted === 0 && c.driver !== 'player' && c.pos.distanceTo(p) > 600) {
+      if (this.wanted === 0 && c.driver === 'cop' && c.pos.distanceTo(p) > 600) {
         Game.removeCar(c);
         continue;
       }
-      if (c.driver !== 'player') {
+      if (this.wanted >= 1 && c.driver === 'patrol') c.driver = 'cop';
+      if (c.driver === 'cop') {
         this.driveCop(c, dt, p);
         c.shootCd -= dt;
         const d = c.pos.distanceTo(p);
@@ -97,7 +112,7 @@ const Police = {
       const b = Math.floor(this.blinkT * 4) % 2 === 0;
       if (c.bar1) { c.bar1.material.color.setHex(b ? 0xff2222 : 0x330000); c.bar2.material.color.setHex(b ? 0x000033 : 0x2244ff); }
     }
-    const anyCop = this.list.some(c => !c.dead && c.driver !== 'player');
+    const anyCop = this.list.some(c => !c.dead && c.driver === 'cop');
     if (anyCop && this.wanted > 0) { Sound.startSiren(); Sound.setSirenVolume(Math.max(0, 1 - nearest / 700)); }
     else Sound.stopSiren();
 
